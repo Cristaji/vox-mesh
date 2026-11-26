@@ -1,0 +1,4169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VOX-MESH // Vocal Synth & AI Lab</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #060913;
+      color: #e2e8f0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(148, 163, 184, 0.2);
+      height: 6px;
+      border-radius: 999px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #38bdf8;
+      cursor: pointer;
+      border: 2px solid #0f172a;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #38bdf8;
+      cursor: pointer;
+      border: 2px solid #0f172a;
+    }
+    .canvas-container {
+      touch-action: pan-y;
+    }
+    .tab-btn.active {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: rgba(56, 189, 248, 0.5);
+      color: #7dd3fc;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.7; }
+      70% { transform: scale(1.1); opacity: 0; }
+      100% { transform: scale(0.95); opacity: 0; }
+    }
+    .recording-dot {
+      animation: pulse-ring 1.2s infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#060913] to-black">
+
+  <!-- Top Header -->
+  <header class="w-full border-b border-white/10 bg-slate-950/85 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5">
+        <div id="brand-icon" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.25)] transition-colors shrink-0">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-sm sm:text-lg font-extrabold tracking-tight text-white flex items-center gap-1.5 sm:gap-2">
+            VOX-MESH
+            <span id="preset-badge" class="text-[10px] sm:text-[11px] mono font-semibold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+              Кибер-диктор
+            </span>
+          </h1>
+          <p class="text-xs text-slate-400 hidden sm:block">Артикуляционный синтезатор · 3D-сетка тракта, Вокал ИИ, Лупер и Экзамен</p>
+        </div>
+      </div>
+
+      <!-- Presets & Voice Toggle -->
+      <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto justify-between sm:justify-end">
+        <button id="btn-open-ai-brain" class="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 text-emerald-200 font-bold text-[11px] sm:text-xs flex items-center gap-1.5 transition cursor-pointer" title="Открыть окно прогресса, сохранения памяти и скачивания сайта">
+          <span>🧠</span>
+          <span id="header-ai-summary">ИИ: 0 сл. · 0 пес.</span>
+        </button>
+
+        <button id="btn-power" class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-bold text-[11px] sm:text-sm transition-all flex items-center gap-1.5 sm:gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-[0_0_20px_rgba(34,211,238,0.4)] cursor-pointer">
+          <span id="power-dot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-slate-950"></span>
+          <span id="power-label">ВКЛЮЧИТЬ ГОЛОС</span>
+        </button>
+
+        <div class="flex items-center gap-1 bg-slate-950/70 p-1 rounded-xl border border-white/10 w-full sm:w-auto overflow-x-auto">
+          <button data-preset="cyber" class="preset-btn flex-1 sm:flex-initial px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold transition cursor-pointer bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 whitespace-nowrap">
+            Кибер-диктор
+          </button>
+          <button data-preset="opera" class="preset-btn flex-1 sm:flex-initial px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold transition cursor-pointer text-slate-400 hover:text-white whitespace-nowrap">
+            Оперный бас
+          </button>
+          <button data-preset="gnome" class="preset-btn flex-1 sm:flex-initial px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold transition cursor-pointer text-slate-400 hover:text-white whitespace-nowrap">
+            Гном
+          </button>
+          <button data-preset="alien" class="preset-btn flex-1 sm:flex-initial px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold transition cursor-pointer text-slate-400 hover:text-white whitespace-nowrap">
+            Пришелец
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 py-3 sm:py-4 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-stretch overflow-x-hidden">
+
+    <!-- Left / Center: 3D Wireframe Vocal Tract Canvas (7 cols) -->
+    <section class="lg:col-span-7 flex flex-col gap-3">
+      <div class="relative flex-1 min-h-[340px] sm:min-h-[480px] rounded-2xl border border-white/10 bg-[#040711] shadow-2xl overflow-hidden canvas-container" id="canvas-wrapper">
+        <canvas id="tract-canvas" class="w-full h-full block"></canvas>
+
+        <!-- HUD Overlays -->
+        <div class="absolute top-2.5 left-2.5 right-2.5 pointer-events-none flex flex-wrap items-center justify-between gap-1.5">
+          <div class="px-2.5 py-1 rounded-xl bg-slate-900/85 border border-white/10 backdrop-blur-md text-[10px] sm:text-[11px] mono text-slate-300 flex items-center gap-2 sm:gap-3">
+            <span>F1: <strong id="hud-f1" class="text-cyan-400">720</strong></span>
+            <span>F2: <strong id="hud-f2" class="text-fuchsia-400">1240</strong></span>
+            <span>ТОН: <strong id="hud-pitch" class="text-amber-300">135</strong>Hz</span>
+          </div>
+          <div class="px-2 py-1 rounded-xl bg-slate-900/75 border border-white/10 text-[10px] text-slate-400 sm:hidden">
+            Тяни узлы · свайп по фону для прокрутки
+          </div>
+          <div id="hud-phoneme-box" class="px-2.5 py-1 rounded-xl bg-slate-900/85 border border-white/10 backdrop-blur-md text-[11px] mono text-emerald-300 hidden">
+            Фонема: <strong id="hud-phoneme-char" class="text-white">-</strong> · <span id="hud-phoneme-desc" class="text-slate-400">покой</span>
+          </div>
+        </div>
+
+        <!-- Quick Vowel & Consonant Bar -->
+        <div class="absolute bottom-2.5 left-2.5 right-2.5 flex flex-wrap items-center justify-between gap-1.5 pointer-events-auto">
+          <div class="flex flex-wrap items-center gap-1 bg-slate-900/90 border border-white/10 backdrop-blur-md p-1 rounded-xl">
+            <span class="text-[10px] sm:text-[11px] font-semibold text-slate-400 px-1">Гласные:</span>
+            <button data-vowel="a" class="vowel-btn px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold bg-slate-800 hover:bg-cyan-500/20 hover:text-cyan-300 border border-white/5 transition cursor-pointer">[А]</button>
+            <button data-vowel="o" class="vowel-btn px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold bg-slate-800 hover:bg-cyan-500/20 hover:text-cyan-300 border border-white/5 transition cursor-pointer">[О]</button>
+            <button data-vowel="u" class="vowel-btn px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold bg-slate-800 hover:bg-cyan-500/20 hover:text-cyan-300 border border-white/5 transition cursor-pointer">[У]</button>
+            <button data-vowel="e" class="vowel-btn px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold bg-slate-800 hover:bg-cyan-500/20 hover:text-cyan-300 border border-white/5 transition cursor-pointer">[Э]</button>
+            <button data-vowel="i" class="vowel-btn px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold bg-slate-800 hover:bg-cyan-500/20 hover:text-cyan-300 border border-white/5 transition cursor-pointer">[И]</button>
+            <button data-vowel="y" class="vowel-btn px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold bg-slate-800 hover:bg-cyan-500/20 hover:text-cyan-300 border border-white/5 transition cursor-pointer">[Ы]</button>
+            <button data-vowel="m" class="vowel-btn px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold bg-slate-800 hover:bg-amber-500/20 hover:text-amber-300 border border-white/5 transition cursor-pointer">[М]</button>
+          </div>
+
+          <div class="flex items-center gap-1 bg-slate-900/90 border border-white/10 backdrop-blur-md p-1 rounded-xl">
+            <span class="text-[10px] sm:text-[11px] font-semibold text-slate-400 px-1">Импульс:</span>
+            <button data-burst="p" class="burst-btn px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-400/30 transition cursor-pointer">П</button>
+            <button data-burst="t" class="burst-btn px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-400/30 transition cursor-pointer">Т</button>
+            <button data-burst="k" class="burst-btn px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-400/30 transition cursor-pointer">К</button>
+            <button data-burst="s" class="burst-btn px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 transition cursor-pointer">С</button>
+            <button data-burst="sh" class="burst-btn px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 transition cursor-pointer">Ш</button>
+            <button data-burst="r" class="burst-btn px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/30 transition cursor-pointer">Р</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Oscilloscope Strip -->
+      <div class="h-16 rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-2 flex items-center justify-between gap-4">
+        <div class="flex flex-col shrink-0">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Акустическая волна</span>
+          <span id="status-text" class="text-xs mono text-cyan-400">Ожидание запуска...</span>
+        </div>
+        <canvas id="scope-canvas" class="flex-1 h-full block rounded-lg"></canvas>
+      </div>
+    </section>
+
+    <!-- Right: Modular Lab Tabs (5 cols) -->
+    <aside class="lg:col-span-5 flex flex-col gap-3">
+
+      <!-- Mode Navigation Tabs (5 tabs) -->
+      <div class="grid grid-cols-5 gap-1 bg-slate-950/90 p-1.5 rounded-2xl border border-white/10">
+        <button data-tab="tts" class="tab-btn active py-2 px-1 rounded-xl text-[11px] font-bold border border-transparent transition cursor-pointer flex flex-col items-center gap-0.5">
+          <span>🗣️</span>
+          <span>Текст</span>
+        </button>
+        <button data-tab="babble" class="tab-btn py-2 px-1 rounded-xl text-[11px] font-bold border border-transparent text-slate-400 hover:text-white transition cursor-pointer flex flex-col items-center gap-0.5">
+          <span>🧬</span>
+          <span>Слова ИИ</span>
+        </button>
+        <button data-tab="sing" class="tab-btn py-2 px-1 rounded-xl text-[11px] font-bold border border-transparent text-slate-400 hover:text-white transition cursor-pointer flex flex-col items-center gap-0.5">
+          <span>🎤</span>
+          <span>Песни ИИ</span>
+        </button>
+        <button data-tab="looper" class="tab-btn py-2 px-1 rounded-xl text-[11px] font-bold border border-transparent text-slate-400 hover:text-white transition cursor-pointer flex flex-col items-center gap-0.5">
+          <span>🎹</span>
+          <span>Лупер</span>
+        </button>
+        <button data-tab="exam" class="tab-btn py-2 px-1 rounded-xl text-[11px] font-bold border border-transparent text-slate-400 hover:text-white transition cursor-pointer flex flex-col items-center gap-0.5">
+          <span>🎯</span>
+          <span>Экзамен</span>
+        </button>
+      </div>
+
+      <!-- TAB 1: TEXT TO SPEECH -->
+      <div id="panel-tts" class="tab-panel rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-md p-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <span>🗣️</span> Чтение текста с артикуляцией
+          </h2>
+          <span class="text-[11px] mono text-cyan-300">CV-коартикуляция</span>
+        </div>
+
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Введи слово или фразу (новые слова автоматически попадут в словарь ИИ). Ударную гласную можно выделить заглавной буквой (например: <span class="text-slate-200 font-semibold">привЕт</span>).
+        </p>
+
+        <div class="flex gap-2">
+          <input id="tts-input" type="text" maxlength="60" value="привЕт, как делА?" placeholder="Введи фразу..." class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-white/15 text-sm text-white focus:outline-none focus:border-cyan-400">
+          <button id="btn-tts-speak" class="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs transition cursor-pointer shrink-0">
+            ▶ Сказать
+          </button>
+        </div>
+
+        <div id="tts-karaoke" class="min-h-[34px] px-3 py-1.5 rounded-xl bg-slate-950/90 border border-white/10 flex flex-wrap items-center gap-1 text-xs mono text-slate-400">
+          <span>Нажми «Сказать», чтобы увидеть разбор фонем...</span>
+        </div>
+
+        <div class="grid grid-cols-1 gap-2.5 pt-1">
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-300 font-medium">Чёткость согласных (взрывы и шипящие)</span>
+              <span id="val-crispness" class="mono text-cyan-300 font-bold">85%</span>
+            </div>
+            <input id="slider-crispness" type="range" min="10" max="100" value="85">
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-300 font-medium">Уровень старания (амплитуда языка и губ)</span>
+              <span id="val-effort" class="mono text-amber-300 font-bold">80%</span>
+            </div>
+            <input id="slider-effort" type="range" min="15" max="100" value="80">
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-300 font-medium">Темп речи</span>
+              <span id="val-speed" class="mono text-emerald-300 font-bold">1.0x</span>
+            </div>
+            <input id="slider-speed" type="range" min="0.6" max="1.5" step="0.05" value="1.0">
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-1.5 pt-1">
+          <button data-phrase="привЕт, как делА?" class="tts-preset-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-200 cursor-pointer">Привет, как дела?</button>
+          <button data-phrase="мАма мЫла рАму" class="tts-preset-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-200 cursor-pointer">Мама мыла раму</button>
+          <button data-phrase="бОрщ и трАктор" class="tts-preset-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-200 cursor-pointer">Борщ и трактор</button>
+          <button data-phrase="я рОбо-гОлова!" class="tts-preset-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-200 cursor-pointer">Я робо-голова!</button>
+        </div>
+      </div>
+
+      <!-- TAB 2: EVOLUTIONARY AI BABBLE & INFINITE CURRICULUM MEMORY -->
+      <div id="panel-babble" class="tab-panel hidden rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-md p-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <span>🧬</span> Бесконечное обучение словам
+          </h2>
+          <span id="ai-gen-badge" class="text-[11px] mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
+            Поколение: 0
+          </span>
+        </div>
+
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Нажми <span class="text-emerald-300 font-semibold">«Авто-обучение ИИ»</span> — модель сама находит слабые звуки, берёт слова из базы, запоминает твои слова и сама синтезирует новые слова!
+        </p>
+
+        <div class="p-3 rounded-xl bg-slate-950/90 border border-white/10 flex flex-col gap-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400">Слабое место (акцент ИИ):</span>
+            <span id="ai-weak-phoneme" class="mono font-extrabold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-400/30">
+              Поиск...
+            </span>
+          </div>
+
+          <div class="flex justify-between items-center text-xs">
+            <span class="text-slate-400">Сейчас тренирует: «<strong id="ai-active-word" class="text-white">МАМА</strong>» <span id="ai-word-origin-badge" class="text-[10px] mono text-cyan-400"></span></span>
+            <span id="ai-fitness-pct" class="mono font-extrabold text-emerald-400">0.0%</span>
+          </div>
+          <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+            <div id="ai-fitness-bar" class="h-full bg-gradient-to-r from-rose-500 via-amber-400 to-emerald-400 transition-all duration-150" style="width: 0%"></div>
+          </div>
+          <div class="flex justify-between text-[10px] mono text-slate-500">
+            <span id="ai-stage-text">Режим: Ожидание запуска</span>
+            <span id="ai-corpus-counter">Словарь: 72 + ∞</span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <div class="flex justify-between items-center text-[10px] uppercase tracking-wider text-slate-400 font-bold">
+            <span>Освоение всех 31 звучащих букв:</span>
+            <span id="ai-phoneme-avg" class="mono text-cyan-300">0%</span>
+          </div>
+          <div id="ai-phoneme-grid" class="grid grid-cols-8 sm:grid-cols-11 gap-1 bg-slate-950/80 p-1.5 rounded-xl border border-white/10"></div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btn-babble" class="py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition cursor-pointer flex items-center justify-center gap-1.5">
+            <span>🧬</span>
+            <span id="babble-label">Авто-обучение ИИ</span>
+          </button>
+
+          <button id="btn-ai-test" class="py-2.5 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5">
+            <span>▶</span>
+            <span>Проверить со звуком</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-3 gap-1.5 bg-slate-950/90 p-2 rounded-xl border border-emerald-400/25">
+          <button id="btn-tab-export-memory" class="py-1.5 px-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-[11px] font-bold cursor-pointer flex items-center justify-center gap-1">
+            <span>💾</span><span>Файл</span>
+          </button>
+          <button id="btn-tab-copy-memory" class="py-1.5 px-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 text-[11px] font-bold cursor-pointer flex items-center justify-center gap-1">
+            <span>📋</span><span>Копия кода</span>
+          </button>
+          <button id="btn-tab-import-memory" class="py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-white/15 text-slate-200 text-[11px] font-bold cursor-pointer flex items-center justify-center gap-1">
+            <span>📥</span><span>Загрузить</span>
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 pt-0.5">
+          <div class="flex gap-1.5 flex-1">
+            <input id="ai-word-input" type="text" maxlength="16" value="МАМА" placeholder="Добавить слово в словарь..." class="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg bg-slate-950 border border-white/15 text-[11px] font-bold uppercase text-white focus:outline-none focus:border-emerald-400">
+            <button id="btn-ai-set-word" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-bold text-slate-200 border border-white/10 cursor-pointer shrink-0">
+              Выбрать
+            </button>
+          </div>
+          <button id="btn-ai-reset-word" class="text-[11px] text-rose-400 hover:text-rose-300 underline cursor-pointer shrink-0">
+            Сбросить
+          </button>
+        </div>
+
+        <div class="flex flex-col gap-1 border-t border-white/10 pt-2">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Выученные слова в памяти:</span>
+          <div id="ai-memory-list" class="max-h-28 overflow-y-auto flex flex-col gap-1 pr-1"></div>
+        </div>
+      </div>
+
+      <!-- TAB 3: AI SINGING TRAINER (5 SONGS) -->
+      <div id="panel-sing" class="tab-panel hidden rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-md p-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <span>🎤</span> Вокал-тренер ИИ (5 песен)
+          </h2>
+          <span id="song-gen-badge" class="text-[11px] mono px-2 py-0.5 rounded-full bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-400/30">
+            Поколение: 0
+          </span>
+        </div>
+
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Модель учится попадать в ноты (интонирование), тянуть гласные с вибрато и чётко пропевать слоги. Выбери песню или включи авто-обучение по всем 5 мелодиям!
+        </p>
+
+        <!-- Song Selector Pills -->
+        <div id="song-selector-list" class="flex flex-wrap gap-1.5"></div>
+
+        <!-- Active Song Progress & Karaoke Score -->
+        <div class="p-3 rounded-xl bg-slate-950/90 border border-white/10 flex flex-col gap-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400">Песня: <strong id="song-active-title" class="text-white">В лесу родилась ёлочка</strong></span>
+            <span id="song-fitness-pct" class="mono font-extrabold text-fuchsia-400">0.0%</span>
+          </div>
+
+          <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+            <div id="song-fitness-bar" class="h-full bg-gradient-to-r from-rose-500 via-fuchsia-400 to-cyan-400 transition-all duration-150" style="width: 0%"></div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-[11px] mono pt-0.5">
+            <div class="px-2 py-1 rounded bg-slate-900/90 border border-white/5 flex justify-between">
+              <span class="text-slate-400">Ноты:</span>
+              <span id="song-pitch-acc" class="text-cyan-300 font-bold">0%</span>
+            </div>
+            <div class="px-2 py-1 rounded bg-slate-900/90 border border-white/5 flex justify-between">
+              <span class="text-slate-400">Дикция:</span>
+              <span id="song-diction-acc" class="text-emerald-300 font-bold">0%</span>
+            </div>
+          </div>
+
+          <!-- Sheet / Syllable Karaoke Strip -->
+          <div id="song-karaoke-strip" class="min-h-[38px] p-2 rounded-lg bg-slate-900/95 border border-white/10 flex flex-wrap items-center gap-1.5 text-xs"></div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btn-song-train" class="py-2.5 px-3 rounded-xl bg-fuchsia-500 hover:bg-fuchsia-400 text-slate-950 font-extrabold text-xs transition cursor-pointer flex items-center justify-center gap-1.5">
+            <span>🎼</span>
+            <span id="song-train-label">Учить песни ИИ</span>
+          </button>
+
+          <button id="btn-song-sing" class="py-2.5 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5">
+            <span>🎤</span>
+            <span>Спеть со звуком</span>
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between text-[11px] text-slate-400 border-t border-white/10 pt-2">
+          <span id="song-status-text">Режим: Выбери песню и нажми «Учить» или «Спеть»</span>
+          <button id="btn-song-reset" class="text-rose-400 hover:text-rose-300 underline cursor-pointer shrink-0">Сбросить песни</button>
+        </div>
+      </div>
+
+      <!-- TAB 4: BLOB OPERA STYLE CHOIR & LOOPER -->
+      <div id="panel-looper" class="tab-panel hidden rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-md p-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <span>🎹</span> Вокальный хор и Лупер (4 сек)
+          </h2>
+          <button id="btn-share-loop" class="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-[11px] font-bold cursor-pointer">
+            🔗 Поделиться петлёй
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 bg-slate-950/80 p-2 rounded-xl border border-white/10">
+          <span class="text-xs text-slate-300 font-semibold">Авто-тюн гамма:</span>
+          <select id="scale-select" class="bg-slate-900 border border-white/15 rounded-lg px-2.5 py-1 text-xs font-bold text-cyan-300 focus:outline-none">
+            <option value="free">Свободный тон (Без привязки)</option>
+            <option value="pentatonic" selected>Пентатоника (Blob Opera)</option>
+            <option value="minor">Эпический минор</option>
+            <option value="major">Светлый мажор</option>
+          </select>
+        </div>
+
+        <div id="looper-tracks" class="flex flex-col gap-2"></div>
+
+        <div class="flex flex-col gap-1.5 pt-1 border-t border-white/10">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Битбокс / Согласные (клавиши 1–6):</span>
+          <div class="grid grid-cols-6 gap-1.5">
+            <button data-beat="p" class="beat-btn py-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/25 border border-white/10 text-xs font-extrabold text-rose-300 cursor-pointer">[П]</button>
+            <button data-beat="b" class="beat-btn py-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/25 border border-white/10 text-xs font-extrabold text-rose-300 cursor-pointer">[Б]</button>
+            <button data-beat="t" class="beat-btn py-1.5 rounded-lg bg-slate-800 hover:bg-amber-500/25 border border-white/10 text-xs font-extrabold text-amber-300 cursor-pointer">[Т]</button>
+            <button data-beat="k" class="beat-btn py-1.5 rounded-lg bg-slate-800 hover:bg-amber-500/25 border border-white/10 text-xs font-extrabold text-amber-300 cursor-pointer">[К]</button>
+            <button data-beat="sh" class="beat-btn py-1.5 rounded-lg bg-slate-800 hover:bg-cyan-500/25 border border-white/10 text-xs font-extrabold text-cyan-300 cursor-pointer">[Ш]</button>
+            <button data-beat="s" class="beat-btn py-1.5 rounded-lg bg-slate-800 hover:bg-cyan-500/25 border border-white/10 text-xs font-extrabold text-cyan-300 cursor-pointer">[С]</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 5: AI EXAM CHALLENGE -->
+      <div id="panel-exam" class="tab-panel hidden rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-md p-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <span>🎯</span> Экзамен: Научи голову говорить
+          </h2>
+          <span id="exam-timer" class="mono text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
+            8.0 сек
+          </span>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-950/90 border border-white/10 flex flex-col items-center text-center gap-1">
+          <span class="text-[11px] uppercase tracking-wider text-slate-400">Задание — произнеси:</span>
+          <div id="exam-target-word" class="text-2xl font-black tracking-widest text-cyan-300">МАМА</div>
+          <div id="exam-hint" class="text-xs text-slate-400">Подсказка: сомкни губы [М], затем открой [А]</div>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <div class="flex justify-between text-xs">
+            <span class="text-slate-300 font-semibold">Схожесть с человеческой речью:</span>
+            <span id="exam-score-val" class="mono font-extrabold text-emerald-400">0%</span>
+          </div>
+          <div class="w-full h-3 rounded-full bg-slate-950 border border-white/10 overflow-hidden">
+            <div id="exam-score-bar" class="h-full bg-gradient-to-r from-rose-500 via-amber-400 to-emerald-400 transition-all duration-100" style="width: 0%"></div>
+          </div>
+          <p id="exam-verdict" class="text-xs font-semibold text-slate-300 pt-1 min-h-[20px]">
+            Нажми «Старт попытки» и двигай язык/губы мышкой!
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btn-exam-start" class="py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition cursor-pointer">
+            ▶ Старт попытки
+          </button>
+          <button id="btn-exam-next" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-white/10 transition cursor-pointer">
+            Другое слово ↻
+          </button>
+        </div>
+
+        <button id="btn-share-exam" class="w-full py-2 rounded-xl bg-fuchsia-500/20 hover:bg-fuchsia-500/30 border border-fuchsia-400/40 text-fuchsia-200 font-bold text-xs transition cursor-pointer">
+          🏆 Скопировать результат для друзей
+        </button>
+      </div>
+
+      <!-- Shared Vocal Controls -->
+      <div class="rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur-md p-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Голосовой аппарат</span>
+          <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+            <input id="chk-hold" type="checkbox" checked class="accent-cyan-400 w-3.5 h-3.5 rounded cursor-pointer">
+            <span>Звук только при зажатии</span>
+          </label>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-300">Высота голоса</span>
+              <span id="val-pitch" class="mono text-cyan-400 font-semibold">135 Hz</span>
+            </div>
+            <input id="slider-pitch" type="range" min="65" max="380" value="135">
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-300">Вибрато</span>
+              <span id="val-vibrato" class="mono text-fuchsia-400 font-semibold">20%</span>
+            </div>
+            <input id="slider-vibrato" type="range" min="0" max="100" value="20">
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-300">Назальность (в нос)</span>
+              <span id="val-nasal" class="mono text-amber-400 font-semibold">10%</span>
+            </div>
+            <input id="slider-nasal" type="range" min="0" max="100" value="10">
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-300">Сиплость / Воздух</span>
+              <span id="val-breath" class="mono text-emerald-400 font-semibold">12%</span>
+            </div>
+            <input id="slider-breath" type="range" min="0" max="100" value="12">
+          </div>
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl bg-slate-900/95 border border-cyan-400/40 text-cyan-200 text-xs sm:text-sm font-semibold shadow-2xl opacity-0 pointer-events-none transition-opacity duration-200">
+    Скопировано!
+  </div>
+
+  <!-- Separate Modal Window: AI Model Progress, Dictionary, Songs & Site Download -->
+  <div id="ai-brain-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-slate-900 border border-emerald-400/40 shadow-2xl p-4 sm:p-5 flex flex-col gap-3.5 relative">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-lg">
+            🧠
+          </div>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold text-white tracking-tight">
+              Прогресс, память и скачивание сайта
+            </h3>
+            <p id="modal-ai-rank" class="text-xs text-emerald-300 font-semibold">
+              Уровень 0: Чистый лист (пока молчит)
+            </p>
+          </div>
+        </div>
+        <button id="btn-close-ai-brain" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-sm flex items-center justify-center cursor-pointer transition">
+          ✕
+        </button>
+      </div>
+
+      <!-- Direct Download Site File for GitHub -->
+      <div class="p-3 rounded-xl bg-cyan-500/10 border border-cyan-400/35 flex items-center justify-between gap-2">
+        <div class="flex flex-col">
+          <span class="text-xs font-extrabold text-cyan-200">Выложить на GitHub Pages</span>
+          <span class="text-[11px] text-slate-400">Скачай готовый файл <code class="text-cyan-300">index.html</code> в 1 клик</span>
+        </div>
+        <button id="btn-download-site-html" class="px-3 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs cursor-pointer shrink-0 transition shadow-[0_0_15px_rgba(34,211,238,0.3)]">
+          ⬇️ Скачать index.html
+        </button>
+      </div>
+
+      <div class="p-3.5 rounded-xl bg-slate-950/90 border border-white/10 flex flex-col gap-2">
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-slate-400 font-semibold">Общая обученность речевого аппарата</span>
+          <span id="modal-ai-overall-pct" class="mono font-extrabold text-emerald-400">0%</span>
+        </div>
+        <div class="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
+          <div id="modal-ai-overall-bar" class="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 transition-all duration-300" style="width: 0%"></div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 pt-2">
+          <div class="p-2.5 rounded-xl bg-slate-900 border border-white/5 text-center">
+            <div id="modal-ai-words-count" class="text-base font-black text-white mono">0</div>
+            <div class="text-[10px] text-slate-400 uppercase font-semibold">Слов в памяти</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-slate-900 border border-white/5 text-center">
+            <div id="modal-ai-songs-count" class="text-base font-black text-fuchsia-400 mono">0 / 5</div>
+            <div class="text-[10px] text-slate-400 uppercase font-semibold">Песен освоено</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-slate-900 border border-white/5 text-center">
+            <div id="modal-ai-total-gens" class="text-base font-black text-cyan-400 mono">0</div>
+            <div class="text-[10px] text-slate-400 uppercase font-semibold">Поколений</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 flex-wrap pt-2 border-t border-white/10">
+          <button id="btn-ai-export-memory" class="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-[11px] font-bold cursor-pointer">
+            💾 Сохранить память
+          </button>
+          <button id="btn-ai-copy-memory" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 text-[11px] font-bold cursor-pointer">
+            📋 Копировать код
+          </button>
+          <button id="btn-ai-import-memory" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-white/15 text-slate-200 text-[11px] font-bold cursor-pointer">
+            📥 Загрузить
+          </button>
+          <button id="btn-ai-wipe-memory" class="text-[11px] text-rose-400 hover:text-rose-300 underline cursor-pointer ml-1">
+            Очистить
+          </button>
+        </div>
+
+        <div id="ai-paste-box" class="hidden flex-col gap-1.5 p-2.5 rounded-xl bg-slate-950 border border-emerald-400/30">
+          <span class="text-[11px] text-slate-300">Вставь ранее скопированный код памяти ИИ:</span>
+          <div class="flex gap-1.5">
+            <input id="ai-paste-input" type="text" placeholder='{"version":4,...}' class="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-white/15 text-xs text-white focus:outline-none">
+            <button id="btn-ai-apply-paste" class="px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-950 font-bold text-xs cursor-pointer">ОК</button>
+          </div>
+        </div>
+        <input id="ai-import-file-input" type="file" accept=".json" class="hidden">
+
+        <div class="text-[11px] font-bold uppercase tracking-wider text-fuchsia-300 pt-1">Выученные песни:</div>
+        <div id="modal-ai-songs-list" class="flex flex-col gap-1"></div>
+
+        <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-300 pt-1">Выученные слова:</div>
+        <div id="modal-ai-dictionary" class="max-h-36 overflow-y-auto flex flex-col gap-1.5 pr-1"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * VOX-MESH // Vocal Synth & AI Lab
+     * Softened Sibilants (Ч, Щ, Ш, С) + Infinite Word Curriculum + 5-Song AI Singing Trainer
+     */
+
+    const state = {
+      isAudioRunning: false,
+      isVoicing: false,
+      holdToSpeak: true,
+      isBabbling: false,
+      isSpeakingTTS: false,
+      isSingingAI: false,
+      preset: 'cyber',
+      scaleMode: 'pentatonic',
+
+      tongueX: 0.50,
+      tongueY: 0.45,
+      lipOpen: 0.65,
+      lipRound: 0.25,
+      larynxY: 0.50,
+
+      targetTongueX: 0.50,
+      targetTongueY: 0.45,
+      targetLipOpen: 0.65,
+      targetLipRound: 0.25,
+      targetLarynxY: 0.50,
+
+      basePitch: 135,
+      pitchOffset: 0,
+      overrideExactPitchHz: null,
+      vibratoDepth: 0.20,
+      nasality: 0.10,
+      breathiness: 0.12,
+      formantShift: 1.0,
+      reverbMix: 0.12,
+      alienMod: 0,
+
+      ttsEffort: 0.80,
+      ttsCrispness: 0.85,
+      ttsSpeed: 1.0,
+
+      f1: 720,
+      f2: 1240,
+      f3: 2500,
+      currentPitch: 135,
+
+      themeColor: '#22d3ee',
+      accentColor: '#f472b6',
+      jawScale: 1.0,
+      snoutScale: 1.0,
+
+      draggingNode: null,
+      pointerDown: false,
+      lastTime: performance.now(),
+      phase: 0
+    };
+
+    const PRESETS = {
+      cyber: {
+        name: 'Кибер-диктор',
+        pitch: 135, vibrato: 20, nasal: 10, breath: 12,
+        formantShift: 1.0, reverb: 0.12, alien: 0,
+        theme: '#22d3ee', accent: '#f472b6', jaw: 1.0, snout: 1.0
+      },
+      opera: {
+        name: 'Оперный бас',
+        pitch: 92, vibrato: 68, nasal: 18, breath: 8,
+        formantShift: 0.84, reverb: 0.45, alien: 0,
+        theme: '#fbbf24', accent: '#f97316', jaw: 1.18, snout: 1.05
+      },
+      gnome: {
+        name: 'Гном',
+        pitch: 245, vibrato: 35, nasal: 35, breath: 18,
+        formantShift: 1.32, reverb: 0.08, alien: 0,
+        theme: '#34d399', accent: '#a78bfa', jaw: 0.82, snout: 0.85
+      },
+      alien: {
+        name: 'Пришелец',
+        pitch: 175, vibrato: 85, nasal: 45, breath: 25,
+        formantShift: 1.15, reverb: 0.35, alien: 34,
+        theme: '#e879f9', accent: '#38bdf8', jaw: 0.92, snout: 1.25
+      }
+    };
+
+    const VOWELS = {
+      a: { tongueX: 0.35, tongueY: 0.25, lipOpen: 0.85, lipRound: 0.15 },
+      o: { tongueX: 0.22, tongueY: 0.48, lipOpen: 0.55, lipRound: 0.85 },
+      u: { tongueX: 0.18, tongueY: 0.78, lipOpen: 0.25, lipRound: 0.95 },
+      e: { tongueX: 0.72, tongueY: 0.55, lipOpen: 0.62, lipRound: 0.10 },
+      i: { tongueX: 0.88, tongueY: 0.86, lipOpen: 0.32, lipRound: 0.05 },
+      y: { tongueX: 0.45, tongueY: 0.75, lipOpen: 0.40, lipRound: 0.12 },
+      m: { tongueX: 0.50, tongueY: 0.50, lipOpen: 0.02, lipRound: 0.40 }
+    };
+
+    const SCALES = {
+      pentatonic: [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24],
+      minor:      [0, 2, 3, 5, 7, 8, 10, 12, 14, 15, 17, 19, 20, 22, 24],
+      major:      [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23, 24]
+    };
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.remove('opacity-0');
+      el.classList.add('opacity-100');
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => {
+        el.classList.remove('opacity-100');
+        el.classList.add('opacity-0');
+      }, 2400);
+    }
+
+    // =========================================================================
+    // MULTI-BUS WEB AUDIO API ENGINE (REFINED NATURAL SIBILANTS)
+    // =========================================================================
+    let audioCtx = null;
+    let glottalOsc1 = null;
+    let glottalOsc2 = null;
+    let vibratoOsc = null;
+    let vibratoGain = null;
+    let alienOsc = null;
+    let alienGain = null;
+    let voicePreGain = null;
+    let voiceGateGain = null;
+    let f1Filter = null;
+    let f2Filter = null;
+    let f3Filter = null;
+    let oralGain = null;
+    let nasalFilter = null;
+    let nasalGain = null;
+    let breathGain = null;
+    let fricativeFilter = null;
+    let fricativeHighFilter = null;
+    let fricativeGain = null;
+    let masterGain = null;
+    let dryGain = null;
+    let wetGain = null;
+    let analyserNode = null;
+    let sharedNoiseBuffer = null;
+
+    function createNoiseBuffer(ctx) {
+      const bufferSize = ctx.sampleRate * 2;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      // Pink-ish softened noise (1-pole lowpass smoothing) to prevent harsh white-noise static
+      let b0 = 0, b1 = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.72 * b0 + 0.28 * white;
+        b1 = 0.45 * b1 + 0.55 * (white - b0 * 0.5);
+        data[i] = b1 * 0.85;
+      }
+      return buffer;
+    }
+
+    function createImpulseResponse(ctx, duration = 1.4, decay = 2.5) {
+      const len = ctx.sampleRate * duration;
+      const impulse = ctx.createBuffer(2, len, ctx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const channelData = impulse.getChannelData(ch);
+        for (let i = 0; i < len; i++) {
+          channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+        }
+      }
+      return impulse;
+    }
+
+    function updatePowerButtonUI() {
+      const btn = document.getElementById('btn-power');
+      const label = document.getElementById('power-label');
+      const dot = document.getElementById('power-dot');
+      const status = document.getElementById('status-text');
+      if (!btn || !label || !dot || !status) return;
+
+      if (state.isAudioRunning) {
+        btn.className = 'px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-bold text-[11px] sm:text-sm transition-all flex items-center gap-1.5 sm:gap-2 bg-emerald-400 hover:bg-emerald-300 text-slate-950 shadow-[0_0_20px_rgba(52,211,153,0.45)] cursor-pointer';
+        dot.className = 'w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-slate-950 animate-ping';
+        label.textContent = 'ЗВУК АКТИВЕН';
+        status.textContent = 'Акустический тракт онлайн';
+      } else {
+        btn.className = 'px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-bold text-[11px] sm:text-sm transition-all flex items-center gap-1.5 sm:gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-[0_0_20px_rgba(34,211,238,0.4)] cursor-pointer';
+        dot.className = 'w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-slate-950';
+        label.textContent = 'ВКЛЮЧИТЬ ГОЛОС';
+        status.textContent = 'Ожидание запуска...';
+      }
+    }
+
+    function initAudio() {
+      if (audioCtx) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        state.isAudioRunning = true;
+        updatePowerButtonUI();
+        return;
+      }
+
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContextClass();
+      sharedNoiseBuffer = createNoiseBuffer(audioCtx);
+
+      glottalOsc1 = audioCtx.createOscillator();
+      glottalOsc1.type = 'sawtooth';
+      glottalOsc1.frequency.value = state.basePitch;
+
+      glottalOsc2 = audioCtx.createOscillator();
+      glottalOsc2.type = 'triangle';
+      glottalOsc2.frequency.value = state.basePitch * 0.5;
+
+      vibratoOsc = audioCtx.createOscillator();
+      vibratoOsc.type = 'sine';
+      vibratoOsc.frequency.value = 5.4;
+      vibratoGain = audioCtx.createGain();
+      vibratoGain.gain.value = 3.0;
+      vibratoOsc.connect(vibratoGain);
+      vibratoGain.connect(glottalOsc1.frequency);
+      vibratoGain.connect(glottalOsc2.frequency);
+
+      alienOsc = audioCtx.createOscillator();
+      alienOsc.type = 'sine';
+      alienOsc.frequency.value = 28;
+      alienGain = audioCtx.createGain();
+      alienGain.gain.value = 0;
+      alienOsc.connect(alienGain);
+      alienGain.connect(glottalOsc1.frequency);
+
+      voicePreGain = audioCtx.createGain();
+      voicePreGain.gain.value = 0.55;
+
+      voiceGateGain = audioCtx.createGain();
+      voiceGateGain.gain.value = 0.0;
+
+      glottalOsc1.connect(voicePreGain);
+      glottalOsc2.connect(voicePreGain);
+      voicePreGain.connect(voiceGateGain);
+
+      const breathSource = audioCtx.createBufferSource();
+      breathSource.buffer = sharedNoiseBuffer;
+      breathSource.loop = true;
+      const breathFilter = audioCtx.createBiquadFilter();
+      breathFilter.type = 'bandpass';
+      breathFilter.frequency.value = 1400;
+      breathFilter.Q.value = 1.4;
+      breathGain = audioCtx.createGain();
+      breathGain.gain.value = 0.03;
+      breathSource.connect(breathFilter);
+      breathFilter.connect(breathGain);
+      breathGain.connect(voiceGateGain);
+
+      f1Filter = audioCtx.createBiquadFilter();
+      f1Filter.type = 'bandpass';
+      f1Filter.frequency.value = 720;
+      f1Filter.Q.value = 7.5;
+
+      f2Filter = audioCtx.createBiquadFilter();
+      f2Filter.type = 'bandpass';
+      f2Filter.frequency.value = 1240;
+      f2Filter.Q.value = 9.0;
+
+      f3Filter = audioCtx.createBiquadFilter();
+      f3Filter.type = 'bandpass';
+      f3Filter.frequency.value = 2500;
+      f3Filter.Q.value = 10.5;
+
+      const f1Gain = audioCtx.createGain(); f1Gain.gain.value = 1.45;
+      const f2Gain = audioCtx.createGain(); f2Gain.gain.value = 1.15;
+      const f3Gain = audioCtx.createGain(); f3Gain.gain.value = 0.55;
+
+      oralGain = audioCtx.createGain();
+      oralGain.gain.value = 0.85;
+
+      voiceGateGain.connect(f1Filter);
+      voiceGateGain.connect(f2Filter);
+      voiceGateGain.connect(f3Filter);
+      f1Filter.connect(f1Gain);
+      f2Filter.connect(f2Gain);
+      f3Filter.connect(f3Gain);
+      f1Gain.connect(oralGain);
+      f2Gain.connect(oralGain);
+      f3Gain.connect(oralGain);
+
+      nasalFilter = audioCtx.createBiquadFilter();
+      nasalFilter.type = 'bandpass';
+      nasalFilter.frequency.value = 285;
+      nasalFilter.Q.value = 6.0;
+      nasalGain = audioCtx.createGain();
+      nasalGain.gain.value = 0.15;
+      voiceGateGain.connect(nasalFilter);
+      nasalFilter.connect(nasalGain);
+
+      // Focused, natural sibilant bus (narrower Q and balanced gain so Ч/Щ/Ш/С never sound like static)
+      const fricSource = audioCtx.createBufferSource();
+      fricSource.buffer = sharedNoiseBuffer;
+      fricSource.loop = true;
+
+      fricativeFilter = audioCtx.createBiquadFilter();
+      fricativeFilter.type = 'bandpass';
+      fricativeFilter.frequency.value = 3600;
+      fricativeFilter.Q.value = 5.8;
+
+      fricativeHighFilter = audioCtx.createBiquadFilter();
+      fricativeHighFilter.type = 'bandpass';
+      fricativeHighFilter.frequency.value = 6400;
+      fricativeHighFilter.Q.value = 6.5;
+
+      const fricLowGain = audioCtx.createGain();
+      fricLowGain.gain.value = 0.68;
+      const fricHighGain = audioCtx.createGain();
+      fricHighGain.gain.value = 0.34;
+
+      fricativeGain = audioCtx.createGain();
+      fricativeGain.gain.value = 0.0;
+
+      fricSource.connect(fricativeFilter);
+      fricSource.connect(fricativeHighFilter);
+      fricativeFilter.connect(fricLowGain);
+      fricativeHighFilter.connect(fricHighGain);
+      fricLowGain.connect(fricativeGain);
+      fricHighGain.connect(fricativeGain);
+
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.72;
+
+      const convolver = audioCtx.createConvolver();
+      convolver.buffer = createImpulseResponse(audioCtx);
+      dryGain = audioCtx.createGain();
+      wetGain = audioCtx.createGain();
+      dryGain.gain.value = 0.88;
+      wetGain.gain.value = 0.12;
+
+      analyserNode = audioCtx.createAnalyser();
+      analyserNode.fftSize = 512;
+
+      oralGain.connect(masterGain);
+      nasalGain.connect(masterGain);
+      fricativeGain.connect(masterGain);
+
+      masterGain.connect(dryGain);
+      masterGain.connect(convolver);
+      convolver.connect(wetGain);
+
+      dryGain.connect(analyserNode);
+      wetGain.connect(analyserNode);
+      analyserNode.connect(audioCtx.destination);
+
+      glottalOsc1.start();
+      glottalOsc2.start();
+      vibratoOsc.start();
+      alienOsc.start();
+      breathSource.start();
+      fricSource.start();
+
+      state.isAudioRunning = true;
+      updatePowerButtonUI();
+    }
+
+    function quantizePitchHz(rawHz, mode) {
+      if (mode === 'free' || !SCALES[mode]) return rawHz;
+      const scale = SCALES[mode];
+      const baseMidi = 48;
+      const midiFloat = 69 + 12 * Math.log2(Math.max(40, rawHz) / 440);
+      const rel = midiFloat - baseMidi;
+      let bestNote = scale[0];
+      let minDiff = Infinity;
+      for (const s of scale) {
+        const diff = Math.abs(rel - s);
+        if (diff < minDiff) {
+          minDiff = diff;
+          bestNote = s;
+        }
+      }
+      return 440 * Math.pow(2, (baseMidi + bestNote - 69) / 12);
+    }
+
+    function triggerConsonantBurst(type, strength = 1.0) {
+      if (!state.isAudioRunning) initAudio();
+      if (!audioCtx || !sharedNoiseBuffer) return;
+
+      const now = audioCtx.currentTime;
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = sharedNoiseBuffer;
+
+      const filter = audioCtx.createBiquadFilter();
+      const env = audioCtx.createGain();
+
+      let centerFreq = 2200;
+      let qVal = 2.6;
+      let dur = 0.05;
+      let peak = 0.42 * strength;
+
+      if (type === 'p' || type === 'b') {
+        centerFreq = 750;
+        qVal = 1.8;
+        dur = 0.042;
+        peak = 0.52 * strength;
+        state.lipOpen = 0.02;
+        state.targetLipOpen = 0.55;
+      } else if (type === 't' || type === 'd') {
+        centerFreq = 3200;
+        qVal = 3.2;
+        dur = 0.045;
+        peak = 0.44 * strength;
+        state.tongueX = 0.85;
+        state.tongueY = 0.88;
+      } else if (type === 'k' || type === 'g') {
+        centerFreq = 1650;
+        qVal = 3.5;
+        dur = 0.05;
+        peak = 0.48 * strength;
+        state.tongueX = 0.22;
+        state.tongueY = 0.85;
+      } else if (type === 's' || type === 'z' || type === 'c') {
+        centerFreq = 5600;
+        qVal = 6.2;
+        dur = 0.11;
+        peak = 0.34 * strength;
+      } else if (type === 'sh' || type === 'ch') {
+        centerFreq = 2500;
+        qVal = 5.4;
+        dur = 0.115;
+        peak = 0.36 * strength;
+      } else if (type === 'r') {
+        centerFreq = 1200;
+        qVal = 3.0;
+        dur = 0.095;
+        peak = 0.32 * strength;
+      }
+
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(centerFreq, now);
+      filter.Q.setValueAtTime(qVal, now);
+
+      env.gain.setValueAtTime(0.001, now);
+      env.gain.exponentialRampToValueAtTime(Math.max(0.01, peak), now + 0.012);
+      env.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+      noise.connect(filter);
+      filter.connect(env);
+      env.connect(masterGain);
+
+      noise.start(now);
+      noise.stop(now + dur + 0.01);
+    }
+
+    function updateAcoustics() {
+      const formants = computeAcousticFormants(state.tongueX, state.tongueY, state.lipOpen, state.lipRound);
+      state.f1 = Math.round(formants.f1 * state.formantShift);
+      state.f2 = Math.round(formants.f2 * state.formantShift);
+      state.f3 = Math.round((2450 + state.tongueX * 450 - state.lipRound * 220) * state.formantShift);
+
+      if (state.overrideExactPitchHz !== null) {
+        state.currentPitch = Math.round(state.overrideExactPitchHz);
+      } else {
+        const larynxPitchFactor = 0.78 + state.larynxY * 0.48;
+        const rawPitch = Math.max(55, (state.basePitch * larynxPitchFactor) + state.pitchOffset);
+        state.currentPitch = Math.round(quantizePitchHz(rawPitch, state.scaleMode));
+      }
+
+      const hudF1 = document.getElementById('hud-f1');
+      const hudF2 = document.getElementById('hud-f2');
+      const hudPitch = document.getElementById('hud-pitch');
+      if (hudF1) hudF1.textContent = state.f1;
+      if (hudF2) hudF2.textContent = state.f2;
+      if (hudPitch) hudPitch.textContent = state.currentPitch;
+
+      const isTrainingAny = aiTrainer.isTraining || songTrainer.isTraining;
+      const shouldVoice = state.isAudioRunning && !isTrainingAny && (
+        state.isSpeakingTTS ||
+        state.isSingingAI ||
+        activeLoopPlayback ||
+        state.pointerDown ||
+        !state.holdToSpeak
+      );
+      state.isVoicing = shouldVoice;
+
+      if (!audioCtx || !state.isAudioRunning) return;
+      const now = audioCtx.currentTime;
+
+      const targetHz = state.overrideExactPitchHz !== null ? state.overrideExactPitchHz : state.currentPitch;
+      glottalOsc1.frequency.setTargetAtTime(targetHz, now, state.overrideExactPitchHz !== null ? 0.025 : 0.015);
+      glottalOsc2.frequency.setTargetAtTime(targetHz * 0.5, now, state.overrideExactPitchHz !== null ? 0.025 : 0.015);
+      vibratoGain.gain.setTargetAtTime(state.vibratoDepth * 14, now, 0.03);
+      alienGain.gain.setTargetAtTime(state.alienMod * 1.4, now, 0.03);
+
+      f1Filter.frequency.setTargetAtTime(state.f1, now, 0.015);
+      f2Filter.frequency.setTargetAtTime(state.f2, now, 0.015);
+      f3Filter.frequency.setTargetAtTime(state.f3, now, 0.015);
+
+      if (dryGain && wetGain) {
+        dryGain.gain.setTargetAtTime(1 - state.reverbMix * 0.6, now, 0.04);
+        wetGain.gain.setTargetAtTime(state.reverbMix, now, 0.04);
+      }
+
+      if (!state.isSpeakingTTS && !state.isSingingAI && !isTrainingAny) {
+        const effNasal = state.nasality + (1 - state.lipOpen) * 0.35;
+        nasalGain.gain.setTargetAtTime(Math.min(1.0, effNasal), now, 0.02);
+        oralGain.gain.setTargetAtTime(Math.max(0.05, state.lipOpen * 1.15), now, 0.02);
+        breathGain.gain.setTargetAtTime(state.breathiness * 0.35, now, 0.02);
+
+        const targetGate = shouldVoice ? 0.65 : 0.0;
+        voiceGateGain.gain.setTargetAtTime(targetGate, now, 0.02);
+      }
+    }
+
+    // =========================================================================
+    // RUSSIAN PHONETIC PARSER & COARTICULATION TEXT-TO-SPEECH
+    // =========================================================================
+    function parseRussianTextToTokens(rawText) {
+      const text = (rawText || '').trim();
+      const tokens = [];
+      const vowelMap = {
+        'а': 'a', 'я': 'a',
+        'о': 'o', 'ё': 'o',
+        'у': 'u', 'ю': 'u',
+        'э': 'e', 'е': 'e',
+        'и': 'i',
+        'ы': 'y'
+      };
+      const softVowels = new Set(['я', 'ё', 'ю', 'е', 'и']);
+      const voicelessSet = new Set(['п', 'ф', 'к', 'т', 'ш', 'с', 'х', 'ц', 'ч', 'щ']);
+      const devoicingMap = { 'б': 'п', 'в': 'ф', 'г': 'к', 'д': 'т', 'ж': 'ш', 'з': 'с' };
+
+      for (let i = 0; i < text.length; i++) {
+        const origChar = text[i];
+        let ch = origChar.toLowerCase();
+        const nextRaw = (text[i + 1] || '').toLowerCase();
+        const isWordEnd = !nextRaw || /[\s,.!?;:\-]/.test(nextRaw);
+        const isSoftNext = softVowels.has(nextRaw) || nextRaw === 'ь';
+
+        if (/[\s,.!?;:\-]/.test(ch)) {
+          tokens.push({ char: origChar, kind: 'pause', dur: ch === ' ' ? 75 : 170 });
+          continue;
+        }
+        if (ch === 'ь' || ch === 'ъ') continue;
+
+        if (devoicingMap[ch] && (isWordEnd || voicelessSet.has(nextRaw))) {
+          ch = devoicingMap[ch];
+        }
+
+        if (vowelMap[ch]) {
+          const isStressed = origChar === origChar.toUpperCase() && origChar !== ch;
+          tokens.push({
+            char: origChar,
+            kind: 'vowel',
+            v: vowelMap[ch],
+            stressed: isStressed || ch === 'ё',
+            iotated: (ch === 'я' || ch === 'ё' || ch === 'ю' || ch === 'е')
+          });
+        } else if (ch === 'м' || ch === 'н') {
+          tokens.push({
+            char: origChar,
+            kind: 'nasal',
+            tX: ch === 'м' ? 0.48 : (isSoftNext ? 0.85 : 0.76),
+            tY: ch === 'м' ? 0.48 : (isSoftNext ? 0.88 : 0.82),
+            lO: ch === 'м' ? 0.02 : 0.25,
+            lR: ch === 'м' ? 0.35 : 0.12,
+            nasal: 0.95
+          });
+        } else if ('пбтдкг'.includes(ch)) {
+          const voiced = 'бдг'.includes(ch);
+          let burst = 'p';
+          let tX = 0.5, tY = 0.5, lR = 0.3;
+          if ('пб'.includes(ch)) { burst = voiced ? 'b' : 'p'; tX = 0.45; tY = 0.45; lR = 0.35; }
+          if ('тд'.includes(ch)) { burst = voiced ? 'd' : 't'; tX = isSoftNext ? 0.86 : 0.78; tY = 0.86; lR = 0.1; }
+          if ('кг'.includes(ch)) { burst = voiced ? 'g' : 'k'; tX = isSoftNext ? 0.42 : 0.22; tY = 0.85; lR = 0.15; }
+          tokens.push({ char: origChar, kind: 'plosive', burst, voiced, tX, tY, lO: 0.02, lR });
+        } else if (ch === 'ц' || ch === 'ч') {
+          const isCh = ch === 'ч';
+          tokens.push({
+            char: origChar,
+            kind: 'affricate',
+            burst: 't',
+            fricFreq: isCh ? 3200 : 5400,
+            fricHighFreq: isCh ? 5600 : 7800,
+            fricGain: isCh ? 0.32 : 0.30,
+            tX: isCh ? 0.84 : 0.80,
+            tY: isCh ? 0.88 : 0.84,
+            lO: 0.24,
+            lR: isCh ? 0.30 : 0.10
+          });
+        } else if (ch === 'р') {
+          tokens.push({
+            char: origChar,
+            kind: 'trill',
+            tX: isSoftNext ? 0.84 : 0.76,
+            tY: 0.82,
+            lO: 0.35,
+            lR: 0.18
+          });
+        } else if (ch === 'л' || ch === 'й') {
+          tokens.push({
+            char: origChar,
+            kind: 'approx',
+            tX: ch === 'й' || isSoftNext ? 0.88 : 0.74,
+            tY: ch === 'й' || isSoftNext ? 0.88 : 0.78,
+            lO: 0.32,
+            lR: 0.12,
+            nasal: 0.1
+          });
+        } else if ('сзшщфвхж'.includes(ch)) {
+          const voiced = 'звж'.includes(ch);
+          let fricFreq = 4200;
+          let fricHighFreq = 6800;
+          let fricGain = 0.30;
+          let tX = 0.75, tY = 0.78, lR = 0.15;
+
+          if ('сз'.includes(ch)) {
+            fricFreq = 5500; fricHighFreq = 7900;
+            fricGain = voiced ? 0.25 : 0.32;
+            tX = 0.82; tY = 0.82;
+          } else if ('шж'.includes(ch)) {
+            fricFreq = 2250; fricHighFreq = 4100;
+            fricGain = voiced ? 0.28 : 0.34;
+            tX = 0.72; tY = 0.84; lR = 0.36;
+          } else if (ch === 'щ') {
+            fricFreq = 3250; fricHighFreq = 5600;
+            fricGain = 0.34;
+            tX = 0.86; tY = 0.88; lR = 0.28;
+          } else if ('фв'.includes(ch)) {
+            fricFreq = 2900; fricHighFreq = 5100;
+            fricGain = voiced ? 0.20 : 0.24;
+            tX = 0.48; tY = 0.45; lR = 0.25;
+          } else if (ch === 'х') {
+            fricFreq = 1650; fricHighFreq = 3200;
+            fricGain = 0.28;
+            tX = 0.24; tY = 0.82;
+          }
+
+          tokens.push({
+            char: origChar,
+            kind: voiced ? 'vfric' : 'fric',
+            fricFreq,
+            fricHighFreq,
+            fricGain,
+            tX, tY, lO: 0.24, lR
+          });
+        }
+      }
+
+      const vowelTokens = tokens.filter(t => t.kind === 'vowel');
+      if (vowelTokens.length > 0 && !vowelTokens.some(v => v.stressed)) {
+        const autoIdx = vowelTokens.length >= 2 ? 1 : 0;
+        vowelTokens[autoIdx].stressed = true;
+      }
+
+      return tokens;
+    }
+
+    async function speakText(rawText) {
+      if (state.isSpeakingTTS || state.isSingingAI) return;
+      if (aiTrainer.isTraining) setAutoBabble(false);
+      if (songTrainer.isTraining) setSongTraining(false);
+      if (!state.isAudioRunning) initAudio();
+
+      ingestWordsFromUserText(rawText);
+
+      const tokens = parseRussianTextToTokens(rawText);
+      if (tokens.length === 0) return;
+
+      state.isSpeakingTTS = true;
+      state.overrideExactPitchHz = null;
+      const karaokeEl = document.getElementById('tts-karaoke');
+      const hudBox = document.getElementById('hud-phoneme-box');
+      const hudChar = document.getElementById('hud-phoneme-char');
+      const hudDesc = document.getElementById('hud-phoneme-desc');
+
+      if (hudBox) hudBox.classList.remove('hidden');
+
+      if (karaokeEl) {
+        karaokeEl.innerHTML = tokens.map((t, idx) =>
+          `<span id="k-tok-${idx}" class="px-1.5 py-0.5 rounded transition-colors">${t.char === ' ' ? '·' : t.char}</span>`
+        ).join('');
+      }
+
+      const effort = state.ttsEffort;
+      const crisp = state.ttsCrispness;
+      const speed = state.ttsSpeed;
+
+      for (let i = 0; i < tokens.length; i++) {
+        if (!state.isSpeakingTTS) break;
+        const tok = tokens[i];
+        const prevEl = document.getElementById(`k-tok-${i - 1}`);
+        const currEl = document.getElementById(`k-tok-${i}`);
+        if (prevEl) prevEl.className = 'px-1.5 py-0.5 rounded text-slate-500';
+        if (currEl) currEl.className = 'px-1.5 py-0.5 rounded bg-cyan-500/30 text-cyan-200 font-extrabold scale-110';
+
+        const now = audioCtx.currentTime;
+
+        if (tok.kind === 'pause') {
+          if (hudChar) hudChar.textContent = '⏸';
+          if (hudDesc) hudDesc.textContent = 'пауза';
+          voiceGateGain.gain.setTargetAtTime(0.0, now, 0.018);
+          fricativeGain.gain.setTargetAtTime(0.0, now, 0.018);
+          await new Promise(r => setTimeout(r, tok.dur / speed));
+          continue;
+        }
+
+        if (tok.kind === 'vowel') {
+          const v = VOWELS[tok.v] || VOWELS.a;
+          const dur = (tok.stressed ? 190 : 120) / speed;
+          if (hudChar) hudChar.textContent = tok.char;
+          if (hudDesc) hudDesc.textContent = tok.stressed ? 'гласная (ударная)' : 'гласная';
+
+          if (tok.iotated) {
+            state.targetTongueX = 0.86;
+            state.targetTongueY = 0.85;
+            await new Promise(r => setTimeout(r, 28 / speed));
+          }
+
+          state.targetTongueX = 0.5 + (v.tongueX - 0.5) * effort;
+          state.targetTongueY = 0.5 + (v.tongueY - 0.5) * effort;
+          state.targetLipOpen = 0.25 + (v.lipOpen - 0.25) * effort;
+          state.targetLipRound = v.lipRound * effort;
+          state.pitchOffset = tok.stressed ? 22 : -5;
+
+          nasalGain.gain.setTargetAtTime(state.nasality, now, 0.015);
+          oralGain.gain.setTargetAtTime(Math.max(0.25, state.targetLipOpen * 1.25), now, 0.015);
+          fricativeGain.gain.setTargetAtTime(0.0, now, 0.018);
+          voiceGateGain.gain.setTargetAtTime(tok.stressed ? 0.82 : 0.56, now, 0.015);
+
+          await new Promise(r => setTimeout(r, dur));
+        } else if (tok.kind === 'nasal' || tok.kind === 'approx') {
+          const dur = 105 / speed;
+          if (hudChar) hudChar.textContent = tok.char;
+          if (hudDesc) hudDesc.textContent = tok.kind === 'nasal' ? 'носовой сонорный' : 'сонорный';
+
+          state.targetTongueX = tok.tX;
+          state.targetTongueY = tok.tY;
+          state.targetLipOpen = tok.lO;
+          state.targetLipRound = tok.lR;
+          state.pitchOffset = -3;
+
+          nasalGain.gain.setTargetAtTime(tok.nasal * 1.15, now, 0.015);
+          oralGain.gain.setTargetAtTime(Math.max(0.04, tok.lO * 1.1), now, 0.015);
+          fricativeGain.gain.setTargetAtTime(0.0, now, 0.018);
+          voiceGateGain.gain.setTargetAtTime(0.52, now, 0.015);
+
+          await new Promise(r => setTimeout(r, dur));
+        } else if (tok.kind === 'plosive') {
+          const dur = 95 / speed;
+          if (hudChar) hudChar.textContent = tok.char;
+          if (hudDesc) hudDesc.textContent = tok.voiced ? 'звонкий взрывной' : 'глухой взрывной';
+
+          state.targetTongueX = tok.tX;
+          state.targetTongueY = tok.tY;
+          state.targetLipOpen = 0.02;
+          state.targetLipRound = tok.lR;
+
+          voiceGateGain.gain.setTargetAtTime(tok.voiced ? 0.18 * crisp : 0.0, now, 0.01);
+          fricativeGain.gain.setTargetAtTime(0.0, now, 0.012);
+          await new Promise(r => setTimeout(r, dur * 0.58));
+
+          triggerConsonantBurst(tok.burst, crisp * 0.75);
+          await new Promise(r => setTimeout(r, dur * 0.42));
+        } else if (tok.kind === 'affricate') {
+          const dur = 105 / speed;
+          if (hudChar) hudChar.textContent = tok.char;
+          if (hudDesc) hudDesc.textContent = 'аффриката (мягкая смычка)';
+
+          state.targetTongueX = tok.tX;
+          state.targetTongueY = tok.tY;
+          state.targetLipOpen = 0.02;
+          state.targetLipRound = tok.lR;
+
+          voiceGateGain.gain.setTargetAtTime(0.0, now, 0.01);
+          fricativeGain.gain.setTargetAtTime(0.0, now, 0.01);
+          await new Promise(r => setTimeout(r, dur * 0.42));
+
+          state.targetLipOpen = tok.lO;
+          triggerConsonantBurst(tok.burst, crisp * 0.45);
+          fricativeFilter.frequency.setTargetAtTime(tok.fricFreq, audioCtx.currentTime, 0.016);
+          if (fricativeHighFilter) fricativeHighFilter.frequency.setTargetAtTime(tok.fricHighFreq || tok.fricFreq * 1.6, audioCtx.currentTime, 0.016);
+          fricativeGain.gain.setTargetAtTime(tok.fricGain * crisp * 0.65, audioCtx.currentTime, 0.018);
+          await new Promise(r => setTimeout(r, dur * 0.58));
+          fricativeGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.022);
+        } else if (tok.kind === 'trill') {
+          const dur = 115 / speed;
+          if (hudChar) hudChar.textContent = tok.char;
+          if (hudDesc) hudDesc.textContent = 'дрожащий [Р]';
+
+          state.targetTongueX = tok.tX;
+          state.targetTongueY = tok.tY;
+          state.targetLipOpen = tok.lO;
+          state.targetLipRound = tok.lR;
+
+          const steps = 3;
+          for (let s = 0; s < steps; s++) {
+            voiceGateGain.gain.setTargetAtTime(0.18, audioCtx.currentTime, 0.008);
+            await new Promise(r => setTimeout(r, dur / (steps * 2)));
+            voiceGateGain.gain.setTargetAtTime(0.65, audioCtx.currentTime, 0.008);
+            triggerConsonantBurst('r', crisp * 0.5);
+            await new Promise(r => setTimeout(r, dur / (steps * 2)));
+          }
+        } else {
+          const dur = (tok.char.toLowerCase() === 'щ' ? 115 : 102) / speed;
+          if (hudChar) hudChar.textContent = tok.char;
+          if (hudDesc) hudDesc.textContent = 'мягкий щелевой';
+
+          state.targetTongueX = tok.tX;
+          state.targetTongueY = tok.tY;
+          state.targetLipOpen = tok.lO;
+          state.targetLipRound = tok.lR;
+
+          oralGain.gain.setTargetAtTime(tok.kind === 'vfric' ? 0.55 : 0.25, now, 0.015);
+          fricativeFilter.frequency.setTargetAtTime(tok.fricFreq, now, 0.016);
+          if (fricativeHighFilter) fricativeHighFilter.frequency.setTargetAtTime(tok.fricHighFreq || tok.fricFreq * 1.55, now, 0.016);
+          fricativeGain.gain.setTargetAtTime(tok.fricGain * crisp * 0.65, now, 0.018);
+          voiceGateGain.gain.setTargetAtTime(tok.kind === 'vfric' ? 0.42 : 0.0, now, 0.015);
+
+          await new Promise(r => setTimeout(r, dur));
+          fricativeGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.022);
+        }
+      }
+
+      if (audioCtx) {
+        voiceGateGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.03);
+        fricativeGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.025);
+      }
+      state.pitchOffset = 0;
+      state.isSpeakingTTS = false;
+      if (hudBox) hudBox.classList.add('hidden');
+    }
+
+    // =========================================================================
+    // TAB 2: INFINITE CURRICULUM RL TRAINING WITH PERSISTENT MEMORY
+    // =========================================================================
+    const AI_MEMORY_STORAGE_KEY = 'vox_mesh_ai_memory_v3';
+
+    const ALL_PHONEMES = [
+      'А', 'Я', 'О', 'Ё', 'У', 'Ю', 'Э', 'Е', 'И', 'Ы',
+      'М', 'Н', 'П', 'Б', 'Т', 'Д', 'К', 'Г', 'С', 'З',
+      'Ш', 'Щ', 'Ж', 'Ч', 'Ц', 'Ф', 'В', 'Х', 'Р', 'Л', 'Й'
+    ];
+
+    const BASE_CORPUS = [
+      'МАМА', 'ПАПА', 'ДОМ', 'КОТ', 'СОК', 'ЛУНА', 'ВОДА', 'РУКА', 'НОГА', 'РЫБА',
+      'ПРИВЕТ', 'СПАСИБО', 'ХОРОШО', 'ГОЛОВА', 'РОБОТ', 'РАКЕТА', 'ТРАКТОР', 'БОРЩ',
+      'ЩУКА', 'ЧАШКА', 'ЦВЕТОК', 'ЗВЕЗДА', 'ЗИМА', 'ВЕСНА', 'ОСЕНЬ', 'ЛЕТО',
+      'ОГОНЬ', 'ЗЕМЛЯ', 'ВОЗДУХ', 'КОСМОС', 'ПЛАНЕТА', 'МАШИНА', 'ДОРОГА', 'ГОРОД',
+      'ЧЕЛОВЕК', 'ГОЛОС', 'ЗВУК', 'СЛОВО', 'ЯЗЫК', 'МУЗЫКА', 'ПЕСНЯ', 'ДРУГ',
+      'СЧАСТЬЕ', 'РАДОСТЬ', 'ЭХО', 'ЭКРАН', 'ЭТАЖ', 'ЭРА', 'ПОЭТ',
+      'ИСКРА', 'ФЛАГ', 'ФАРА', 'ФОРМА', 'ХЛЕБ', 'СЫР', 'МЯУ',
+      'МОЙ', 'ЧАЙ', 'МАЙ', 'ГЕРОЙ', 'КРАЙ', 'ЙОД', 'СЛУЧАЙ',
+      'ЯБЛОКО', 'ЁЖИК', 'ЮЛА', 'ЕНОТ', 'ЖАРА', 'ЖИЗНЬ', 'ЦЕЛЬ', 'СОЛНЦЕ', 'ЧИСЛО'
+    ];
+
+    let dynamicCorpus = [...BASE_CORPUS];
+    let synthesizedWordsSet = new Set();
+
+    const SYLLABLE_ONSETS = [
+      'М', 'Н', 'П', 'Б', 'Т', 'Д', 'К', 'Г', 'С', 'З',
+      'Ш', 'Щ', 'Ж', 'Ч', 'Ц', 'Ф', 'В', 'Х', 'Р', 'Л',
+      'ПР', 'ТР', 'КР', 'ГР', 'СТ', 'СК', 'СВ', 'ЗВ', 'ФЛ', 'ВЛ', 'МЛ', 'ШТ'
+    ];
+    const SYLLABLE_NUCLEI = ['А', 'О', 'У', 'Э', 'И', 'Ы', 'Я', 'Ё', 'Ю', 'Е'];
+    const SYLLABLE_CODAS = ['', '', '', 'Н', 'М', 'Р', 'Л', 'С', 'К', 'Т', 'Ш', 'Щ', 'Ч', 'Ц', 'Ф', 'Й'];
+
+    function generateNovelRussianWord(targetPhoneme = null) {
+      for (let attempt = 0; attempt < 25; attempt++) {
+        const sylCount = Math.random() < 0.65 ? 2 : 3;
+        let word = '';
+        for (let s = 0; s < sylCount; s++) {
+          let onset = SYLLABLE_ONSETS[Math.floor(Math.random() * SYLLABLE_ONSETS.length)];
+          let nucleus = SYLLABLE_NUCLEI[Math.floor(Math.random() * SYLLABLE_NUCLEI.length)];
+          let coda = (s === sylCount - 1)
+            ? SYLLABLE_CODAS[Math.floor(Math.random() * SYLLABLE_CODAS.length)]
+            : (Math.random() < 0.25 ? 'Н' : '');
+
+          if (targetPhoneme && s === 0) {
+            if (SYLLABLE_NUCLEI.includes(targetPhoneme)) {
+              nucleus = targetPhoneme;
+              if (targetPhoneme === 'Э' || targetPhoneme === 'Й') onset = '';
+            } else if (targetPhoneme === 'Й') {
+              coda = 'Й';
+            } else {
+              onset = targetPhoneme;
+            }
+          }
+
+          if ((onset.endsWith('Ж') || onset.endsWith('Ш')) && nucleus === 'Ы') nucleus = 'И';
+          if ((onset.endsWith('Ч') || onset.endsWith('Щ')) && nucleus === 'Я') nucleus = 'А';
+          if ((onset.endsWith('Ч') || onset.endsWith('Щ')) && nucleus === 'Ю') nucleus = 'У';
+
+          word += onset + nucleus + coda;
+        }
+
+        word = word.slice(0, 10);
+        if (word.length >= 3 && !dynamicCorpus.includes(word)) {
+          dynamicCorpus.push(word);
+          synthesizedWordsSet.add(word);
+          return word;
+        }
+      }
+      return 'НОВОСЛОВ';
+    }
+
+    function addCustomWordToCorpus(rawWord) {
+      const clean = (rawWord || '').trim().toUpperCase().replace(/[^А-ЯЁ]/g, '');
+      if (clean.length >= 2 && !dynamicCorpus.includes(clean)) {
+        dynamicCorpus.push(clean);
+      }
+      return clean;
+    }
+
+    function ingestWordsFromUserText(rawText) {
+      const parts = (rawText || '').split(/[\s,.!?;:\-0-9]+/);
+      let addedCount = 0;
+      parts.forEach(p => {
+        const clean = p.trim().toUpperCase().replace(/[^А-ЯЁ]/g, '');
+        if (clean.length >= 2 && !dynamicCorpus.includes(clean)) {
+          dynamicCorpus.push(clean);
+          addedCount++;
+        }
+      });
+      if (addedCount > 0) {
+        updateCorpusCounterUI();
+        saveAiMemory();
+      }
+    }
+
+    const aiTrainer = {
+      isTraining: false,
+      currentWord: 'МАМА',
+      focusPhoneme: 'А',
+      generation: 0,
+      bestFitness: 0,
+      bestGenome: null,
+      targetPhonemes: [],
+      memory: {},
+      phonemeStats: {},
+      sessionStepsOnWord: 0,
+      stagnantSteps: 0
+    };
+
+    function initPhonemeStats() {
+      ALL_PHONEMES.forEach(p => {
+        if (typeof aiTrainer.phonemeStats[p] !== 'number') {
+          aiTrainer.phonemeStats[p] = 0;
+        }
+      });
+    }
+
+    function updateCorpusCounterUI() {
+      const el = document.getElementById('ai-corpus-counter');
+      if (el) {
+        const extra = dynamicCorpus.length - BASE_CORPUS.length;
+        el.textContent = extra > 0
+          ? `Словарь: ${dynamicCorpus.length} (+${extra} нов.)`
+          : `Словарь: ${dynamicCorpus.length} + ∞`;
+      }
+    }
+
+    function loadAiMemory() {
+      let loadedData = null;
+      try {
+        const raw = localStorage.getItem(AI_MEMORY_STORAGE_KEY);
+        if (raw) loadedData = JSON.parse(raw);
+      } catch (e) {}
+
+      if (!loadedData) {
+        try {
+          if (window.name && window.name.startsWith('VOX_MESH_MEM:')) {
+            loadedData = JSON.parse(window.name.slice('VOX_MESH_MEM:'.length));
+          }
+        } catch (e) {}
+      }
+
+      if (loadedData) {
+        if (loadedData.memory) {
+          aiTrainer.memory = loadedData.memory || {};
+          aiTrainer.phonemeStats = loadedData.phonemeStats || {};
+          if (Array.isArray(loadedData.customWords)) {
+            loadedData.customWords.forEach(w => addCustomWordToCorpus(w));
+          }
+          if (Array.isArray(loadedData.synthesizedWords)) {
+            loadedData.synthesizedWords.forEach(w => {
+              addCustomWordToCorpus(w);
+              synthesizedWordsSet.add(w);
+            });
+          }
+        } else {
+          aiTrainer.memory = loadedData || {};
+        }
+        Object.keys(aiTrainer.memory).forEach(w => addCustomWordToCorpus(w));
+      } else {
+        aiTrainer.memory = {};
+        aiTrainer.phonemeStats = {};
+      }
+      initPhonemeStats();
+      updateCorpusCounterUI();
+      renderPhonemeHeatmap();
+      renderAiMemoryList();
+    }
+
+    function saveAiMemory() {
+      const customWords = dynamicCorpus.filter(w => !BASE_CORPUS.includes(w));
+      const payload = JSON.stringify({
+        memory: aiTrainer.memory,
+        phonemeStats: aiTrainer.phonemeStats,
+        customWords,
+        synthesizedWords: Array.from(synthesizedWordsSet)
+      });
+      try {
+        localStorage.setItem(AI_MEMORY_STORAGE_KEY, payload);
+      } catch (e) {}
+      try {
+        window.name = 'VOX_MESH_MEM:' + payload;
+      } catch (e) {}
+      updateCorpusCounterUI();
+      renderPhonemeHeatmap();
+      renderAiMemoryList();
+      updateAiGlobalDashboard();
+    }
+
+    function computeAcousticFormants(tX, tY, lO, lR) {
+      const f1 = Math.max(200, Math.min(1150, 230 + (1 - tY) * 580 + lO * 260 - lR * 130));
+      const f2 = Math.max(550, Math.min(2950, 620 + tX * 1680 + tY * 340 - lR * 480));
+      return { f1, f2 };
+    }
+
+    function normalizePhonemeKey(ch) {
+      const u = (ch || '').toUpperCase();
+      return ALL_PHONEMES.includes(u) ? u : 'А';
+    }
+
+    function buildTargetPhonemesForWord(word) {
+      const tokens = parseRussianTextToTokens(word);
+      const steps = [];
+      for (const tok of tokens) {
+        if (tok.kind === 'pause') continue;
+        const pKey = normalizePhonemeKey(tok.char);
+        if (tok.kind === 'vowel') {
+          const v = VOWELS[tok.v] || VOWELS.a;
+          const formants = computeAcousticFormants(v.tongueX, v.tongueY, v.lipOpen, v.lipRound);
+          steps.push({
+            char: tok.char, pKey, kind: 'vowel',
+            iotated: !!tok.iotated,
+            tX: v.tongueX, tY: v.tongueY, lO: v.lipOpen, lR: v.lipRound,
+            targetF1: formants.f1, targetF2: formants.f2,
+            nasal: 0.05, burst: null, fric: 0,
+            durMs: tok.stressed ? 195 : 120,
+            voiceLevel: tok.stressed ? 0.82 : 0.56,
+            pitchDelta: tok.stressed ? 22 : -6
+          });
+        } else if (tok.kind === 'nasal' || tok.kind === 'approx') {
+          const formants = computeAcousticFormants(tok.tX, tok.tY, tok.lO, tok.lR);
+          steps.push({
+            char: tok.char, pKey, kind: tok.kind,
+            tX: tok.tX, tY: tok.tY, lO: tok.lO, lR: tok.lR,
+            targetF1: formants.f1, targetF2: formants.f2,
+            nasal: tok.nasal || 0.95, burst: null, fric: 0,
+            durMs: 110,
+            voiceLevel: 0.48,
+            pitchDelta: -4
+          });
+        } else if (tok.kind === 'plosive') {
+          const formants = computeAcousticFormants(tok.tX, tok.tY, 0.0, tok.lR);
+          steps.push({
+            char: tok.char, pKey, kind: 'plosive',
+            tX: tok.tX, tY: tok.tY, lO: 0.0, lR: tok.lR,
+            targetF1: formants.f1, targetF2: formants.f2,
+            nasal: 0.0, burst: tok.burst, fric: 0,
+            durMs: 95,
+            voiceLevel: tok.voiced ? 0.16 : 0.0,
+            pitchDelta: 4
+          });
+        } else if (tok.kind === 'affricate') {
+          const formants = computeAcousticFormants(tok.tX, tok.tY, tok.lO, tok.lR);
+          steps.push({
+            char: tok.char, pKey, kind: 'affricate',
+            tX: tok.tX, tY: tok.tY, lO: tok.lO, lR: tok.lR,
+            targetF1: formants.f1, targetF2: formants.f2,
+            nasal: 0.0, burst: tok.burst, fric: tok.fricGain || 0.30, fricFreq: tok.fricFreq || 3200, fricHighFreq: tok.fricHighFreq || 5600,
+            durMs: 110,
+            voiceLevel: 0.0,
+            pitchDelta: 4
+          });
+        } else if (tok.kind === 'trill') {
+          const formants = computeAcousticFormants(tok.tX, tok.tY, tok.lO, tok.lR);
+          steps.push({
+            char: tok.char, pKey, kind: 'trill',
+            tX: tok.tX, tY: tok.tY, lO: tok.lO, lR: tok.lR,
+            targetF1: formants.f1, targetF2: formants.f2,
+            nasal: 0.05, burst: 'r', fric: 0,
+            durMs: 115,
+            voiceLevel: 0.55,
+            pitchDelta: 6
+          });
+        } else {
+          const formants = computeAcousticFormants(tok.tX, tok.tY, tok.lO, tok.lR);
+          steps.push({
+            char: tok.char, pKey, kind: 'fric',
+            tX: tok.tX, tY: tok.tY, lO: tok.lO, lR: tok.lR,
+            targetF1: formants.f1, targetF2: formants.f2,
+            nasal: 0.0, burst: null, fric: tok.fricGain || 0.30, fricFreq: tok.fricFreq || 3250, fricHighFreq: tok.fricHighFreq || 5600,
+            durMs: tok.char.toLowerCase() === 'щ' ? 115 : 102,
+            voiceLevel: tok.kind === 'vfric' ? 0.38 : 0.0,
+            pitchDelta: 0
+          });
+        }
+      }
+      if (steps.length === 0) {
+        const f = computeAcousticFormants(0.35, 0.25, 0.85, 0.15);
+        steps.push({ char: 'А', pKey: 'А', kind: 'vowel', tX: 0.35, tY: 0.25, lO: 0.85, lR: 0.15, targetF1: f.f1, targetF2: f.f2, nasal: 0.05, burst: null, fric: 0, durMs: 180, voiceLevel: 0.75, pitchDelta: 0 });
+      }
+      return steps;
+    }
+
+    function createRandomGenome(len) {
+      const genes = [];
+      for (let i = 0; i < len; i++) {
+        genes.push({
+          tX: Math.random(),
+          tY: Math.random(),
+          lO: Math.random(),
+          lR: Math.random(),
+          nasal: Math.random(),
+          burstProb: Math.random(),
+          fricLevel: Math.random() * 0.4,
+          durNorm: Math.random(),
+          voiceNorm: Math.random()
+        });
+      }
+      return genes;
+    }
+
+    function evaluateGenomeDetailed(genome, targets) {
+      let weightedSum = 0;
+      let weightTotal = 0;
+      const perStepAcc = [];
+
+      for (let i = 0; i < targets.length; i++) {
+        const g = genome[i];
+        const t = targets[i];
+
+        const produced = computeAcousticFormants(g.tX, g.tY, g.lO, g.lR);
+        const f1Err = Math.min(1, Math.abs(produced.f1 - t.targetF1) / 480);
+        const f2Err = Math.min(1, Math.abs(produced.f2 - t.targetF2) / 1350);
+
+        const lipErr = Math.abs(g.lO - t.lO);
+        const nasErr = Math.abs(g.nasal - t.nasal);
+
+        const prodDur = 60 + g.durNorm * 160;
+        const durErr = Math.min(1, Math.abs(prodDur - t.durMs) / 110);
+
+        const prodVoice = g.voiceNorm * 0.9;
+        const voiceErr = Math.min(1, Math.abs(prodVoice - t.voiceLevel) / 0.75);
+
+        const targetBurst = t.burst ? 0.92 : 0.05;
+        const burstErr = Math.abs(g.burstProb - targetBurst);
+        const fricErr = Math.min(1, Math.abs(g.fricLevel - t.fric) / 0.35);
+
+        const totalErr = (
+          f1Err * 2.0 +
+          f2Err * 2.2 +
+          lipErr * 2.0 +
+          nasErr * 1.4 +
+          durErr * 1.3 +
+          voiceErr * 1.6 +
+          burstErr * 1.5 +
+          fricErr * 1.2
+        ) / 13.2;
+
+        const stepAcc = Math.max(0, Math.pow(1 - totalErr, 1.55)) * 100;
+        perStepAcc.push({ pKey: t.pKey, acc: stepAcc });
+
+        const w = (t.pKey === aiTrainer.focusPhoneme) ? 2.2 : 1.0;
+        weightedSum += stepAcc * w;
+        weightTotal += w;
+      }
+
+      return {
+        fitness: weightedSum / weightTotal,
+        perStepAcc
+      };
+    }
+
+    function mutateGenome(parent, targets, fitnessPct) {
+      const baseRate = Math.max(0.012, Math.pow((100 - fitnessPct) / 100, 1.15) * 0.42);
+      return parent.map((g, idx) => {
+        const isFocusStep = targets[idx] && targets[idx].pKey === aiTrainer.focusPhoneme;
+        const prob = isFocusStep ? 0.85 : 0.55;
+        const rate = isFocusStep ? Math.max(0.02, baseRate * 1.25) : baseRate * 0.85;
+        const mut = (val) => Math.max(0, Math.min(1, val + (Math.random() * 2 - 1) * rate));
+        return {
+          tX: Math.random() < prob ? mut(g.tX) : g.tX,
+          tY: Math.random() < prob ? mut(g.tY) : g.tY,
+          lO: Math.random() < prob ? mut(g.lO) : g.lO,
+          lR: Math.random() < prob * 0.8 ? mut(g.lR) : g.lR,
+          nasal: Math.random() < prob * 0.9 ? mut(g.nasal) : g.nasal,
+          burstProb: Math.random() < prob * 0.85 ? mut(g.burstProb) : g.burstProb,
+          fricLevel: Math.random() < prob * 0.85 ? mut(g.fricLevel) : g.fricLevel,
+          durNorm: Math.random() < prob * 0.85 ? mut(g.durNorm ?? 0.5) : (g.durNorm ?? 0.5),
+          voiceNorm: Math.random() < prob * 0.9 ? mut(g.voiceNorm ?? 0.6) : (g.voiceNorm ?? 0.6)
+        };
+      });
+    }
+
+    function findWeakestPhonemeAndWord() {
+      const unlearnedWords = dynamicCorpus.filter(w => {
+        const m = aiTrainer.memory[w];
+        return !m || (m.fitness || 0) < 90.0;
+      });
+
+      if (unlearnedWords.length > 0) {
+        let weakestP = ALL_PHONEMES[0];
+        let minVal = Infinity;
+        ALL_PHONEMES.forEach(p => {
+          const hasUnlearnedForP = unlearnedWords.some(w => w.toUpperCase().includes(p));
+          if (!hasUnlearnedForP) return;
+          const val = (aiTrainer.phonemeStats[p] || 0) + Math.random() * 4.0;
+          if (val < minVal) {
+            minVal = val;
+            weakestP = p;
+          }
+        });
+
+        const matching = unlearnedWords.filter(w => w.toUpperCase().includes(weakestP));
+        const pool = matching.length > 0 ? matching : unlearnedWords;
+        const chosen = pool[Math.floor(Math.random() * pool.length)];
+        return {
+          weakestPhoneme: weakestP,
+          nextWord: chosen
+        };
+      }
+
+      let weakestP = ALL_PHONEMES[0];
+      let minVal = Infinity;
+      ALL_PHONEMES.forEach(p => {
+        const val = (aiTrainer.phonemeStats[p] || 0) + Math.random() * 6.0;
+        if (val < minVal) {
+          minVal = val;
+          weakestP = p;
+        }
+      });
+
+      const novelWord = generateNovelRussianWord(weakestP);
+      return {
+        weakestPhoneme: weakestP,
+        nextWord: novelWord
+      };
+    }
+
+    function selectWordForTraining(wordRaw, explicitFocusPhoneme = null) {
+      const word = addCustomWordToCorpus(wordRaw) || 'МАМА';
+      aiTrainer.currentWord = word;
+      aiTrainer.targetPhonemes = buildTargetPhonemesForWord(word);
+      aiTrainer.sessionStepsOnWord = 0;
+      aiTrainer.stagnantSteps = 0;
+
+      if (explicitFocusPhoneme) {
+        aiTrainer.focusPhoneme = explicitFocusPhoneme;
+      } else {
+        let wP = aiTrainer.targetPhonemes[0].pKey;
+        let low = Infinity;
+        aiTrainer.targetPhonemes.forEach(t => {
+          const st = aiTrainer.phonemeStats[t.pKey] || 0;
+          if (st < low) { low = st; wP = t.pKey; }
+        });
+        aiTrainer.focusPhoneme = wP;
+      }
+
+      const saved = aiTrainer.memory[word];
+      if (saved && saved.genome && saved.genome.length === aiTrainer.targetPhonemes.length) {
+        aiTrainer.generation = saved.generation;
+        aiTrainer.bestGenome = JSON.parse(JSON.stringify(saved.genome));
+        const reEval = evaluateGenomeDetailed(aiTrainer.bestGenome, aiTrainer.targetPhonemes);
+        aiTrainer.bestFitness = Math.max(saved.fitness || 0, reEval.fitness);
+        reEval.perStepAcc.forEach(st => {
+          const prev = aiTrainer.phonemeStats[st.pKey] || 0;
+          if (st.acc > prev) aiTrainer.phonemeStats[st.pKey] = st.acc;
+        });
+      } else {
+        aiTrainer.generation = 0;
+        aiTrainer.bestGenome = createRandomGenome(aiTrainer.targetPhonemes.length);
+        const evalRes = evaluateGenomeDetailed(aiTrainer.bestGenome, aiTrainer.targetPhonemes);
+        aiTrainer.bestFitness = evalRes.fitness;
+      }
+
+      const activeWordEl = document.getElementById('ai-active-word');
+      const originBadgeEl = document.getElementById('ai-word-origin-badge');
+      const wordInputEl = document.getElementById('ai-word-input');
+      const weakEl = document.getElementById('ai-weak-phoneme');
+      if (activeWordEl) activeWordEl.textContent = word;
+      if (originBadgeEl) {
+        if (synthesizedWordsSet.has(word)) originBadgeEl.textContent = '[ИИ-слово]';
+        else if (!BASE_CORPUS.includes(word)) originBadgeEl.textContent = '[Твоё слово]';
+        else originBadgeEl.textContent = '';
+      }
+      if (wordInputEl) wordInputEl.value = word;
+      if (weakEl) {
+        const pScore = Math.round(aiTrainer.phonemeStats[aiTrainer.focusPhoneme] || 0);
+        weakEl.textContent = `Звук [${aiTrainer.focusPhoneme}] · ${pScore}%`;
+      }
+
+      updateCorpusCounterUI();
+      updateAiTrainerUI();
+    }
+
+    function updateAiTrainerUI() {
+      const genEl = document.getElementById('ai-gen-badge');
+      const pctEl = document.getElementById('ai-fitness-pct');
+      const barEl = document.getElementById('ai-fitness-bar');
+      const stageEl = document.getElementById('ai-stage-text');
+      const weakEl = document.getElementById('ai-weak-phoneme');
+
+      const fit = aiTrainer.bestFitness;
+      if (genEl) genEl.textContent = `Поколение: ${aiTrainer.generation}`;
+      if (pctEl) pctEl.textContent = `${fit.toFixed(1)}%`;
+      if (barEl) barEl.style.width = `${Math.min(100, fit)}%`;
+
+      if (weakEl) {
+        const pScore = Math.round(aiTrainer.phonemeStats[aiTrainer.focusPhoneme] || 0);
+        weakEl.textContent = `Звук [${aiTrainer.focusPhoneme}] · ${pScore}%`;
+      }
+
+      if (stageEl) {
+        if (!aiTrainer.isTraining) {
+          stageEl.textContent = 'Режим: Пауза (нажми «Авто-обучение ИИ»)';
+        } else {
+          stageEl.textContent = `Авто-режим (без звука) · шлифует [${aiTrainer.focusPhoneme}]`;
+        }
+      }
+    }
+
+    function renderPhonemeHeatmap() {
+      const grid = document.getElementById('ai-phoneme-grid');
+      const avgEl = document.getElementById('ai-phoneme-avg');
+      if (!grid) return;
+
+      grid.innerHTML = '';
+      let sum = 0;
+      ALL_PHONEMES.forEach(p => {
+        const score = Math.round(aiTrainer.phonemeStats[p] || 0);
+        sum += score;
+        const isFocus = p === aiTrainer.focusPhoneme;
+        let colorCls = 'bg-slate-900 text-slate-500 border-white/5';
+        if (score >= 85) colorCls = 'bg-emerald-500/25 text-emerald-300 border-emerald-400/40';
+        else if (score >= 55) colorCls = 'bg-amber-500/20 text-amber-300 border-amber-400/30';
+        else if (score > 10) colorCls = 'bg-rose-500/20 text-rose-300 border-rose-400/30';
+
+        const cell = document.createElement('div');
+        cell.className = `py-1 rounded text-center mono text-[10px] font-bold border ${colorCls} ${isFocus ? 'ring-1 ring-cyan-400 scale-105' : ''}`;
+        cell.title = `Звук [${p}]: освоено на ${score}%`;
+        cell.textContent = p;
+        grid.appendChild(cell);
+      });
+
+      if (avgEl) {
+        avgEl.textContent = Math.round(sum / ALL_PHONEMES.length) + '%';
+      }
+    }
+
+    function renderAiMemoryList() {
+      const listEl = document.getElementById('ai-memory-list');
+      if (!listEl) return;
+      const keys = Object.keys(aiTrainer.memory);
+      if (keys.length === 0) {
+        listEl.innerHTML = '<span class="text-[11px] text-slate-500 italic">Память пуста — запусти авто-обучение</span>';
+        return;
+      }
+      listEl.innerHTML = '';
+      keys.sort((a, b) => (aiTrainer.memory[b].fitness || 0) - (aiTrainer.memory[a].fitness || 0));
+      keys.forEach(w => {
+        const item = aiTrainer.memory[w];
+        const tag = synthesizedWordsSet.has(w) ? ' <span class="text-[9px] text-cyan-400">[ИИ]</span>' : '';
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between px-2.5 py-1 rounded-lg bg-slate-950/80 border border-white/5 text-xs';
+        row.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-white">${w}${tag}</span>
+            <span class="mono text-[11px] text-emerald-400">${item.fitness.toFixed(1)}%</span>
+            <span class="mono text-[10px] text-slate-500">(${item.generation} пок.)</span>
+          </div>
+          <button class="px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[11px] font-bold cursor-pointer">▶ Послушать</button>
+        `;
+        row.querySelector('button').addEventListener('click', () => {
+          selectWordForTraining(w);
+          playLearnedGenome(w);
+        });
+        listEl.appendChild(row);
+      });
+    }
+
+    async function speakGenomeSequence(genome, targets, withSound = true) {
+      if (withSound && !state.isAudioRunning) initAudio();
+      state.overrideExactPitchHz = null;
+      const hudBox = document.getElementById('hud-phoneme-box');
+      const hudChar = document.getElementById('hud-phoneme-char');
+      const hudDesc = document.getElementById('hud-phoneme-desc');
+
+      if (withSound && hudBox) hudBox.classList.remove('hidden');
+
+      for (let i = 0; i < genome.length; i++) {
+        if (!aiTrainer.isTraining && !state.isSpeakingTTS) break;
+        const g = genome[i];
+        const t = targets[i];
+
+        if (t.iotated && withSound) {
+          state.tongueX = 0.88;
+          state.tongueY = 0.86;
+          await new Promise(r => setTimeout(r, 26));
+        }
+
+        state.targetTongueX = g.tX;
+        state.targetTongueY = g.tY;
+        state.targetLipOpen = g.lO;
+        state.targetLipRound = g.lR;
+        state.tongueX += (g.tX - state.tongueX) * 0.65;
+        state.tongueY += (g.tY - state.tongueY) * 0.65;
+        state.lipOpen += (g.lO - state.lipOpen) * 0.75;
+        state.lipRound += (g.lR - state.lipRound) * 0.65;
+        state.pitchOffset = t.pitchDelta || 0;
+
+        const stepDurMs = 60 + (g.durNorm ?? 0.5) * 160;
+        const stepVoiceGain = (g.voiceNorm ?? 0.6) * 0.9;
+
+        if (withSound && audioCtx) {
+          const now = audioCtx.currentTime;
+          if (hudChar) hudChar.textContent = t.char;
+          if (hudDesc) hudDesc.textContent = `Поколение #${aiTrainer.generation} · ${Math.round(stepDurMs)}мс`;
+
+          nasalGain.gain.setTargetAtTime(g.nasal * 1.15, now, 0.015);
+          oralGain.gain.setTargetAtTime(Math.max(0.03, g.lO * 1.25), now, 0.015);
+
+          if (t.kind === 'affricate' && g.burstProb > 0.55) {
+            voiceGateGain.gain.setTargetAtTime(0.0, now, 0.01);
+            fricativeGain.gain.setTargetAtTime(0.0, now, 0.01);
+            await new Promise(r => setTimeout(r, stepDurMs * 0.42));
+            triggerConsonantBurst(t.burst || 't', g.burstProb * 0.45);
+            fricativeFilter.frequency.setTargetAtTime(t.fricFreq || 3200, audioCtx.currentTime, 0.016);
+            if (fricativeHighFilter) fricativeHighFilter.frequency.setTargetAtTime(t.fricHighFreq || 5600, audioCtx.currentTime, 0.016);
+            fricativeGain.gain.setTargetAtTime(Math.min(0.26, g.fricLevel * 0.65), audioCtx.currentTime, 0.018);
+            await new Promise(r => setTimeout(r, stepDurMs * 0.58));
+            fricativeGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.022);
+            continue;
+          }
+
+          if (g.burstProb > 0.62 && t.burst) {
+            voiceGateGain.gain.setTargetAtTime(0.0, now, 0.01);
+            fricativeGain.gain.setTargetAtTime(0.0, now, 0.01);
+            await new Promise(r => setTimeout(r, stepDurMs * 0.6));
+            triggerConsonantBurst(t.burst, g.burstProb * 0.7);
+            await new Promise(r => setTimeout(r, stepDurMs * 0.4));
+            continue;
+          }
+
+          if (g.fricLevel > 0.14 && (t.kind === 'fric' || t.kind === 'vfric' || t.kind === 'affricate')) {
+            oralGain.gain.setTargetAtTime(stepVoiceGain > 0.1 ? 0.55 : 0.25, now, 0.015);
+            fricativeFilter.frequency.setTargetAtTime(t.fricFreq || 3250, now, 0.016);
+            if (fricativeHighFilter) fricativeHighFilter.frequency.setTargetAtTime(t.fricHighFreq || 5600, now, 0.016);
+            fricativeGain.gain.setTargetAtTime(Math.min(0.28, g.fricLevel * 0.65), now, 0.018);
+          } else {
+            fricativeGain.gain.setTargetAtTime(0.0, now, 0.018);
+          }
+
+          voiceGateGain.gain.setTargetAtTime(stepVoiceGain, now, 0.015);
+        }
+
+        await new Promise(r => setTimeout(r, withSound ? stepDurMs : 0));
+
+        if (withSound && audioCtx && i < genome.length - 1) {
+          voiceGateGain.gain.setTargetAtTime(stepVoiceGain * 0.25, audioCtx.currentTime, 0.01);
+          await new Promise(r => setTimeout(r, 18));
+        }
+      }
+
+      if (withSound && audioCtx) {
+        voiceGateGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.03);
+        fricativeGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.025);
+      }
+      state.pitchOffset = 0;
+    }
+
+    async function playLearnedGenome(word) {
+      if (aiTrainer.isTraining) setAutoBabble(false);
+      if (songTrainer.isTraining) setSongTraining(false);
+      selectWordForTraining(word);
+      state.isSpeakingTTS = true;
+      await speakGenomeSequence(aiTrainer.bestGenome, aiTrainer.targetPhonemes, true);
+      state.isSpeakingTTS = false;
+      const hudBox = document.getElementById('hud-phoneme-box');
+      if (hudBox) hudBox.classList.add('hidden');
+    }
+
+    let silentTrainingIntervalId = null;
+
+    function runAutonomousTrainingTick(batchSize = 65) {
+      let improved = false;
+      let latestStepAcc = null;
+
+      for (let b = 0; b < batchSize; b++) {
+        aiTrainer.generation++;
+        aiTrainer.sessionStepsOnWord++;
+        aiTrainer.stagnantSteps++;
+        const candidate = mutateGenome(aiTrainer.bestGenome, aiTrainer.targetPhonemes, aiTrainer.bestFitness);
+        const evalRes = evaluateGenomeDetailed(candidate, aiTrainer.targetPhonemes);
+        if (evalRes.fitness > aiTrainer.bestFitness) {
+          aiTrainer.bestFitness = evalRes.fitness;
+          aiTrainer.bestGenome = candidate;
+          latestStepAcc = evalRes.perStepAcc;
+          improved = true;
+          aiTrainer.stagnantSteps = 0;
+        }
+      }
+
+      if (latestStepAcc) {
+        latestStepAcc.forEach(st => {
+          const prev = aiTrainer.phonemeStats[st.pKey] || 0;
+          if (st.acc > prev) {
+            aiTrainer.phonemeStats[st.pKey] = prev + (st.acc - prev) * 0.45;
+          }
+        });
+      }
+
+      if (improved || aiTrainer.generation % 40 === 0) {
+        aiTrainer.memory[aiTrainer.currentWord] = {
+          generation: aiTrainer.generation,
+          fitness: aiTrainer.bestFitness,
+          genome: aiTrainer.bestGenome
+        };
+        saveAiMemory();
+      }
+
+      const genePreview = aiTrainer.bestGenome[aiTrainer.generation % aiTrainer.bestGenome.length];
+      if (genePreview) {
+        state.targetTongueX = genePreview.tX;
+        state.targetTongueY = genePreview.tY;
+        state.targetLipOpen = genePreview.lO;
+        state.targetLipRound = genePreview.lR;
+      }
+
+      if (aiTrainer.bestFitness >= 90.0 || aiTrainer.stagnantSteps >= 800 || aiTrainer.sessionStepsOnWord >= 1500) {
+        aiTrainer.memory[aiTrainer.currentWord] = {
+          generation: aiTrainer.generation,
+          fitness: aiTrainer.bestFitness,
+          genome: aiTrainer.bestGenome
+        };
+        saveAiMemory();
+        const nextTask = findWeakestPhonemeAndWord();
+        selectWordForTraining(nextTask.nextWord, nextTask.weakestPhoneme);
+      } else {
+        updateAiTrainerUI();
+      }
+    }
+
+    function setAutoBabble(active) {
+      state.isBabbling = active;
+      aiTrainer.isTraining = active;
+      const btn = document.getElementById('btn-babble');
+      const label = document.getElementById('babble-label');
+
+      clearInterval(silentTrainingIntervalId);
+      silentTrainingIntervalId = null;
+
+      if (active) {
+        if (songTrainer.isTraining) setSongTraining(false);
+        if (audioCtx) {
+          voiceGateGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.01);
+          fricativeGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.01);
+        }
+        if (btn) btn.className = 'py-2.5 px-3 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-extrabold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(244,63,94,0.4)]';
+        if (label) label.textContent = '⏹ Остановить ИИ';
+
+        const nextTask = findWeakestPhonemeAndWord();
+        selectWordForTraining(nextTask.nextWord, nextTask.weakestPhoneme);
+
+        silentTrainingIntervalId = setInterval(() => {
+          if (!aiTrainer.isTraining) return;
+          runAutonomousTrainingTick(65);
+        }, 25);
+      } else {
+        if (btn) btn.className = 'py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition cursor-pointer flex items-center justify-center gap-1.5';
+        if (label) label.textContent = 'Авто-обучение ИИ';
+        if (audioCtx) {
+          voiceGateGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.03);
+          fricativeGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.02);
+        }
+        const hudBox = document.getElementById('hud-phoneme-box');
+        if (hudBox) hudBox.classList.add('hidden');
+        updateAiTrainerUI();
+        saveAiMemory();
+      }
+    }
+
+    // =========================================================================
+    // TAB 3: AI SINGING TRAINER (5 SONGS + PITCH & DICTION EVOLUTION)
+    // =========================================================================
+    const AI_SONGS_STORAGE_KEY = 'vox_mesh_ai_songs_v1';
+
+    function midiToHz(midi) {
+      return 440 * Math.pow(2, (midi - 69) / 12);
+    }
+
+    const SONG_CORPUS = [
+      {
+        id: 'yolochka',
+        title: 'В лесу родилась ёлочка',
+        syllables: [
+          { text: 'В ле-', midi: 60, dur: 260 },
+          { text: 'сУ', midi: 69, dur: 420 },
+          { text: 'ро-', midi: 69, dur: 260 },
+          { text: 'ди-', midi: 67, dur: 260 },
+          { text: 'лась', midi: 69, dur: 380 },
+          { text: 'Ё-', midi: 65, dur: 440 },
+          { text: 'лоч-', midi: 60, dur: 260 },
+          { text: 'ка', midi: 60, dur: 480 }
+        ]
+      },
+      {
+        id: 'birthday',
+        title: 'С днём рождения тебя',
+        syllables: [
+          { text: 'С днём', midi: 60, dur: 240 },
+          { text: 'рож-', midi: 60, dur: 220 },
+          { text: 'дЕ-', midi: 62, dur: 420 },
+          { text: 'нья', midi: 60, dur: 400 },
+          { text: 'те-', midi: 65, dur: 400 },
+          { text: 'бЯ!', midi: 64, dur: 620 }
+        ]
+      },
+      {
+        id: 'gusi',
+        title: 'Два весёлых гуся',
+        syllables: [
+          { text: 'ЖЫ-', midi: 65, dur: 280 },
+          { text: 'ли', midi: 64, dur: 280 },
+          { text: 'у', midi: 62, dur: 260 },
+          { text: 'ба-', midi: 60, dur: 280 },
+          { text: 'бУ-', midi: 67, dur: 440 },
+          { text: 'си', midi: 67, dur: 440 }
+        ]
+      },
+      {
+        id: 'kalinka',
+        title: 'Калинка-малинка',
+        syllables: [
+          { text: 'Ка-', midi: 71, dur: 260 },
+          { text: 'лИн-', midi: 69, dur: 420 },
+          { text: 'ка,', midi: 66, dur: 280 },
+          { text: 'ка-', midi: 67, dur: 240 },
+          { text: 'лИн-', midi: 69, dur: 320 },
+          { text: 'ка,', midi: 66, dur: 260 },
+          { text: 'ка-', midi: 67, dur: 240 },
+          { text: 'лИн-', midi: 69, dur: 320 },
+          { text: 'ка', midi: 66, dur: 260 },
+          { text: 'мо-', midi: 64, dur: 260 },
+          { text: 'Я!', midi: 62, dur: 540 }
+        ]
+      },
+      {
+        id: 'moroz',
+        title: 'Ой, мороз, мороз',
+        syllables: [
+          { text: 'Ой,', midi: 64, dur: 420 },
+          { text: 'мо-', midi: 64, dur: 280 },
+          { text: 'рОз,', midi: 69, dur: 520 },
+          { text: 'мо-', midi: 69, dur: 280 },
+          { text: 'рОз,', midi: 71, dur: 560 },
+          { text: 'не', midi: 69, dur: 280 },
+          { text: 'мо-', midi: 67, dur: 300 },
+          { text: 'рОзь', midi: 69, dur: 480 },
+          { text: 'ме-', midi: 67, dur: 280 },
+          { text: 'нЯ!', midi: 64, dur: 620 }
+        ]
+      }
+    ];
+
+    const MIDI_NOTE_NAMES = ['До', 'До#', 'Ре', 'Ре#', 'Ми', 'Фа', 'Фа#', 'Соль', 'Соль#', 'Ля', 'Ля#', 'Си'];
+    function midiToNoteLabel(midi) {
+      const name = MIDI_NOTE_NAMES[midi % 12];
+      const oct = Math.floor(midi / 12) - 1;
+      return `${name}${oct}`;
+    }
+
+    const songTrainer = {
+      isTraining: false,
+      activeSongId: SONG_CORPUS[0].id,
+      generation: 0,
+      bestFitness: 0,
+      bestPitchAcc: 0,
+      bestDictionAcc: 0,
+      bestGenome: null,
+      targetSteps: [],
+      memory: {},
+      stagnantSteps: 0,
+      sessionSteps: 0
+    };
+
+    function loadSongMemory() {
+      let data = null;
+      try {
+        const raw = localStorage.getItem(AI_SONGS_STORAGE_KEY);
+        if (raw) data = JSON.parse(raw);
+      } catch (e) {}
+      if (data && typeof data === 'object') {
+        songTrainer.memory = data;
+      }
+      renderSongSelectorUI();
+    }
+
+    function saveSongMemory() {
+      const serialized = JSON.stringify(songTrainer.memory);
+      try {
+        localStorage.setItem(AI_SONGS_STORAGE_KEY, serialized);
+      } catch (e) {}
+      renderSongSelectorUI();
+      updateAiGlobalDashboard();
+    }
+
+    function buildTargetStepsForSong(song) {
+      const steps = [];
+      song.syllables.forEach((syl, sylIdx) => {
+        const cleanText = syl.text.replace(/[^А-Яа-яЁё]/g, '');
+        const tokens = parseRussianTextToTokens(cleanText);
+        if (tokens.length === 0) return;
+
+        const targetHz = midiToHz(syl.midi);
+        const consonantTokens = tokens.filter(t => t.kind !== 'vowel' && t.kind !== 'pause');
+        const vowelTokens = tokens.filter(t => t.kind === 'vowel');
+
+        const consDur = consonantTokens.length > 0 ? Math.min(80, syl.dur * 0.22) : 0;
+        const vowelDur = Math.max(140, (syl.dur - consDur * consonantTokens.length) / Math.max(1, vowelTokens.length));
+
+        tokens.forEach(tok => {
+          if (tok.kind === 'pause') return;
+          const isVowel = tok.kind === 'vowel';
+          const v = isVowel ? (VOWELS[tok.v] || VOWELS.a) : null;
+          const tX = isVowel ? v.tongueX : (tok.tX ?? 0.5);
+          const tY = isVowel ? v.tongueY : (tok.tY ?? 0.5);
+          const lO = isVowel ? Math.max(0.45, v.lipOpen) : (tok.lO ?? 0.1);
+          const lR = isVowel ? v.lipRound : (tok.lR ?? 0.2);
+          const formants = computeAcousticFormants(tX, tY, lO, lR);
+
+          steps.push({
+            sylIdx,
+            sylLabel: syl.text,
+            noteLabel: midiToNoteLabel(syl.midi),
+            char: tok.char,
+            kind: tok.kind,
+            iotated: !!tok.iotated,
+            tX, tY, lO, lR,
+            targetF1: formants.f1,
+            targetF2: formants.f2,
+            targetHz,
+            targetVibrato: isVowel && vowelDur >= 340 ? 0.52 : 0.12,
+            durMs: isVowel ? vowelDur : consDur,
+            nasal: isVowel ? 0.08 : (tok.nasal ?? 0.0),
+            burst: tok.burst || null,
+            fric: tok.fricGain || 0,
+            fricFreq: tok.fricFreq || 3250,
+            fricHighFreq: tok.fricHighFreq || 5600,
+            voiceLevel: isVowel ? 0.85 : (tok.kind === 'nasal' || tok.kind === 'approx' || tok.kind === 'trill' ? 0.52 : (tok.voiced ? 0.25 : 0.0))
+          });
+        });
+      });
+      return steps;
+    }
+
+    function createRandomSongGenome(len) {
+      return Array.from({ length: len }, () => ({
+        tX: Math.random(),
+        tY: Math.random(),
+        lO: Math.random(),
+        lR: Math.random(),
+        pitchNorm: Math.random(),
+        vibratoNorm: Math.random(),
+        nasal: Math.random() * 0.6,
+        burstProb: Math.random(),
+        fricLevel: Math.random() * 0.35
+      }));
+    }
+
+    function evaluateSongGenome(genome, targets) {
+      let pitchScoreSum = 0;
+      let dictionScoreSum = 0;
+
+      for (let i = 0; i < targets.length; i++) {
+        const g = genome[i];
+        const t = targets[i];
+
+        const producedHz = 110 + g.pitchNorm * 330;
+        const semitoneDiff = Math.abs(12 * Math.log2(Math.max(55, producedHz) / t.targetHz));
+        const pitchErr = Math.min(1, semitoneDiff / 7.0);
+        const vibErr = Math.abs(g.vibratoNorm * 0.85 - t.targetVibrato);
+        const stepPitchAcc = Math.max(0, Math.pow(1 - (pitchErr * 0.82 + vibErr * 0.18), 1.5)) * 100;
+        pitchScoreSum += stepPitchAcc;
+
+        const produced = computeAcousticFormants(g.tX, g.tY, g.lO, g.lR);
+        const f1Err = Math.min(1, Math.abs(produced.f1 - t.targetF1) / 500);
+        const f2Err = Math.min(1, Math.abs(produced.f2 - t.targetF2) / 1400);
+        const lipErr = Math.abs(g.lO - t.lO);
+        const nasErr = Math.abs(g.nasal - t.nasal);
+        const targetBurst = t.burst ? 0.92 : 0.05;
+        const burstErr = Math.abs(g.burstProb - targetBurst);
+        const fricErr = Math.min(1, Math.abs(g.fricLevel - t.fric) / 0.35);
+
+        const dictErr = (f1Err * 1.9 + f2Err * 2.0 + lipErr * 2.0 + nasErr * 1.2 + burstErr * 1.4 + fricErr * 1.2) / 9.7;
+        const stepDictAcc = Math.max(0, Math.pow(1 - dictErr, 1.5)) * 100;
+        dictionScoreSum += stepDictAcc;
+      }
+
+      const pitchAcc = pitchScoreSum / targets.length;
+      const dictionAcc = dictionScoreSum / targets.length;
+      const fitness = pitchAcc * 0.56 + dictionAcc * 0.44;
+      return { fitness, pitchAcc, dictionAcc };
+    }
+
+    function mutateSongGenome(parent, fitnessPct) {
+      const rate = Math.max(0.012, Math.pow((100 - fitnessPct) / 100, 1.15) * 0.40);
+      const mut = (val) => Math.max(0, Math.min(1, val + (Math.random() * 2 - 1) * rate));
+      return parent.map(g => ({
+        tX: Math.random() < 0.65 ? mut(g.tX) : g.tX,
+        tY: Math.random() < 0.65 ? mut(g.tY) : g.tY,
+        lO: Math.random() < 0.65 ? mut(g.lO) : g.lO,
+        lR: Math.random() < 0.55 ? mut(g.lR) : g.lR,
+        pitchNorm: Math.random() < 0.80 ? mut(g.pitchNorm) : g.pitchNorm,
+        vibratoNorm: Math.random() < 0.65 ? mut(g.vibratoNorm) : g.vibratoNorm,
+        nasal: Math.random() < 0.55 ? mut(g.nasal) : g.nasal,
+        burstProb: Math.random() < 0.55 ? mut(g.burstProb) : g.burstProb,
+        fricLevel: Math.random() < 0.55 ? mut(g.fricLevel) : g.fricLevel
+      }));
+    }
+
+    function selectSongForTraining(songId) {
+      const song = SONG_CORPUS.find(s => s.id === songId) || SONG_CORPUS[0];
+      songTrainer.activeSongId = song.id;
+      songTrainer.targetSteps = buildTargetStepsForSong(song);
+      songTrainer.stagnantSteps = 0;
+      songTrainer.sessionSteps = 0;
+
+      const saved = songTrainer.memory[song.id];
+      if (saved && saved.genome && saved.genome.length === songTrainer.targetSteps.length) {
+        songTrainer.generation = saved.generation;
+        songTrainer.bestGenome = JSON.parse(JSON.stringify(saved.genome));
+        const ev = evaluateSongGenome(songTrainer.bestGenome, songTrainer.targetSteps);
+        songTrainer.bestFitness = Math.max(saved.fitness || 0, ev.fitness);
+        songTrainer.bestPitchAcc = ev.pitchAcc;
+        songTrainer.bestDictionAcc = ev.dictionAcc;
+      } else {
+        songTrainer.generation = 0;
+        songTrainer.bestGenome = createRandomSongGenome(songTrainer.targetSteps.length);
+        const ev = evaluateSongGenome(songTrainer.bestGenome, songTrainer.targetSteps);
+        songTrainer.bestFitness = ev.fitness;
+        songTrainer.bestPitchAcc = ev.pitchAcc;
+        songTrainer.bestDictionAcc = ev.dictionAcc;
+      }
+
+      renderSongSelectorUI();
+      renderSongKaraokeStrip(song, -1);
+      updateSongTrainerUI();
+    }
+
+    function renderSongSelectorUI() {
+      const listEl = document.getElementById('song-selector-list');
+      if (!listEl) return;
+      listEl.innerHTML = '';
+
+      SONG_CORPUS.forEach(song => {
+        const mem = songTrainer.memory[song.id];
+        const pct = mem ? Math.round(mem.fitness || 0) : 0;
+        const isSelected = song.id === songTrainer.activeSongId;
+        const btn = document.createElement('button');
+        btn.className = `px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition cursor-pointer flex items-center gap-1.5 ${
+          isSelected
+            ? 'bg-fuchsia-500/25 border-fuchsia-400/60 text-fuchsia-200'
+            : 'bg-slate-950/80 border-white/10 text-slate-300 hover:border-white/25'
+        }`;
+        btn.innerHTML = `
+          <span>🎵 ${song.title}</span>
+          <span class="mono text-[10px] px-1.5 py-0.2 rounded ${pct >= 88 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'}">${pct}%</span>
+        `;
+        btn.addEventListener('click', () => {
+          selectSongForTraining(song.id);
+        });
+        listEl.appendChild(btn);
+      });
+    }
+
+    function renderSongKaraokeStrip(song, activeSylIdx = -1) {
+      const strip = document.getElementById('song-karaoke-strip');
+      if (!strip) return;
+      strip.innerHTML = song.syllables.map((s, idx) => {
+        const isActive = idx === activeSylIdx;
+        const isPast = activeSylIdx > idx;
+        return `
+          <div class="px-2 py-1 rounded-lg border transition-all flex flex-col items-center ${
+            isActive
+              ? 'bg-fuchsia-500/30 border-fuchsia-400 text-white scale-105 shadow-[0_0_12px_rgba(232,121,249,0.4)]'
+              : (isPast ? 'bg-slate-950/60 border-white/5 text-slate-500' : 'bg-slate-950/90 border-white/10 text-slate-300')
+          }">
+            <span class="font-extrabold text-xs leading-tight">${s.text}</span>
+            <span class="mono text-[9px] ${isActive ? 'text-cyan-300' : 'text-slate-500'}">${midiToNoteLabel(s.midi)}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateSongTrainerUI() {
+      const song = SONG_CORPUS.find(s => s.id === songTrainer.activeSongId) || SONG_CORPUS[0];
+      const titleEl = document.getElementById('song-active-title');
+      const genEl = document.getElementById('song-gen-badge');
+      const pctEl = document.getElementById('song-fitness-pct');
+      const barEl = document.getElementById('song-fitness-bar');
+      const pitchEl = document.getElementById('song-pitch-acc');
+      const dictEl = document.getElementById('song-diction-acc');
+
+      if (titleEl) titleEl.textContent = song.title;
+      if (genEl) genEl.textContent = `Поколение: ${songTrainer.generation}`;
+      if (pctEl) pctEl.textContent = `${songTrainer.bestFitness.toFixed(1)}%`;
+      if (barEl) barEl.style.width = `${Math.min(100, songTrainer.bestFitness)}%`;
+      if (pitchEl) pitchEl.textContent = `${Math.round(songTrainer.bestPitchAcc)}%`;
+      if (dictEl) dictEl.textContent = `${Math.round(songTrainer.bestDictionAcc)}%`;
+    }
+
+    function runSongTrainingTick(batchSize = 60) {
+      let improved = false;
+      for (let b = 0; b < batchSize; b++) {
+        songTrainer.generation++;
+        songTrainer.sessionSteps++;
+        songTrainer.stagnantSteps++;
+        const cand = mutateSongGenome(songTrainer.bestGenome, songTrainer.bestFitness);
+        const ev = evaluateSongGenome(cand, songTrainer.targetSteps);
+        if (ev.fitness > songTrainer.bestFitness) {
+          songTrainer.bestFitness = ev.fitness;
+          songTrainer.bestPitchAcc = ev.pitchAcc;
+          songTrainer.bestDictionAcc = ev.dictionAcc;
+          songTrainer.bestGenome = cand;
+          improved = true;
+          songTrainer.stagnantSteps = 0;
+        }
+      }
+
+      if (improved || songTrainer.generation % 40 === 0) {
+        songTrainer.memory[songTrainer.activeSongId] = {
+          generation: songTrainer.generation,
+          fitness: songTrainer.bestFitness,
+          pitchAcc: songTrainer.bestPitchAcc,
+          dictionAcc: songTrainer.bestDictionAcc,
+          genome: songTrainer.bestGenome
+        };
+        saveSongMemory();
+      }
+
+      const preview = songTrainer.bestGenome[songTrainer.generation % songTrainer.bestGenome.length];
+      if (preview) {
+        state.targetTongueX = preview.tX;
+        state.targetTongueY = preview.tY;
+        state.targetLipOpen = preview.lO;
+        state.targetLipRound = preview.lR;
+      }
+
+      if (songTrainer.bestFitness >= 91.0 || songTrainer.stagnantSteps >= 850 || songTrainer.sessionSteps >= 1600) {
+        songTrainer.memory[songTrainer.activeSongId] = {
+          generation: songTrainer.generation,
+          fitness: songTrainer.bestFitness,
+          pitchAcc: songTrainer.bestPitchAcc,
+          dictionAcc: songTrainer.bestDictionAcc,
+          genome: songTrainer.bestGenome
+        };
+        saveSongMemory();
+
+        const nextUnlearned = SONG_CORPUS.find(s => {
+          const m = songTrainer.memory[s.id];
+          return !m || (m.fitness || 0) < 91.0;
+        });
+        if (nextUnlearned) {
+          selectSongForTraining(nextUnlearned.id);
+        } else {
+          const randSong = SONG_CORPUS[Math.floor(Math.random() * SONG_CORPUS.length)];
+          selectSongForTraining(randSong.id);
+        }
+      } else {
+        updateSongTrainerUI();
+      }
+    }
+
+    let silentSongIntervalId = null;
+
+    function setSongTraining(active) {
+      songTrainer.isTraining = active;
+      const btn = document.getElementById('btn-song-train');
+      const label = document.getElementById('song-train-label');
+      const statusEl = document.getElementById('song-status-text');
+
+      clearInterval(silentSongIntervalId);
+      silentSongIntervalId = null;
+
+      if (active) {
+        if (aiTrainer.isTraining) setAutoBabble(false);
+        state.isSingingAI = false;
+        state.isSpeakingTTS = false;
+        if (audioCtx) {
+          voiceGateGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.01);
+          fricativeGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.01);
+        }
+        if (btn) btn.className = 'py-2.5 px-3 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-extrabold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(244,63,94,0.4)]';
+        if (label) label.textContent = '⏹ Остановить вокал';
+        if (statusEl) statusEl.textContent = 'Авто-обучение вокалу (без звука)...';
+
+        silentSongIntervalId = setInterval(() => {
+          if (!songTrainer.isTraining) return;
+          runSongTrainingTick(60);
+        }, 25);
+      } else {
+        if (btn) btn.className = 'py-2.5 px-3 rounded-xl bg-fuchsia-500 hover:bg-fuchsia-400 text-slate-950 font-extrabold text-xs transition cursor-pointer flex items-center justify-center gap-1.5';
+        if (label) label.textContent = 'Учить песни ИИ';
+        if (statusEl) statusEl.textContent = 'Режим: Пауза — нажми «Спеть со звуком»';
+        updateSongTrainerUI();
+        saveSongMemory();
+      }
+    }
+
+    async function singLearnedSong(songId = null) {
+      if (state.isSingingAI || state.isSpeakingTTS) return;
+      if (aiTrainer.isTraining) setAutoBabble(false);
+      if (songTrainer.isTraining) setSongTraining(false);
+      if (!state.isAudioRunning) initAudio();
+
+      if (songId) selectSongForTraining(songId);
+      const song = SONG_CORPUS.find(s => s.id === songTrainer.activeSongId) || SONG_CORPUS[0];
+      const genome = songTrainer.bestGenome;
+      const targets = songTrainer.targetSteps;
+
+      state.isSingingAI = true;
+      const prevVibrato = state.vibratoDepth;
+      const hudBox = document.getElementById('hud-phoneme-box');
+      const hudChar = document.getElementById('hud-phoneme-char');
+      const hudDesc = document.getElementById('hud-phoneme-desc');
+      if (hudBox) hudBox.classList.remove('hidden');
+
+      for (let i = 0; i < genome.length; i++) {
+        if (!state.isSingingAI) break;
+        const g = genome[i];
+        const t = targets[i];
+
+        renderSongKaraokeStrip(song, t.sylIdx);
+
+        if (t.iotated) {
+          state.tongueX = 0.88;
+          state.tongueY = 0.86;
+          await new Promise(r => setTimeout(r, 24));
+        }
+
+        const sungHz = 110 + g.pitchNorm * 330;
+        state.overrideExactPitchHz = sungHz;
+        state.vibratoDepth = g.vibratoNorm * 0.85;
+
+        state.targetTongueX = g.tX;
+        state.targetTongueY = g.tY;
+        state.targetLipOpen = g.lO;
+        state.targetLipRound = g.lR;
+        state.tongueX += (g.tX - state.tongueX) * 0.7;
+        state.tongueY += (g.tY - state.tongueY) * 0.7;
+        state.lipOpen += (g.lO - state.lipOpen) * 0.75;
+        state.lipRound += (g.lR - state.lipRound) * 0.7;
+
+        const now = audioCtx.currentTime;
+        if (hudChar) hudChar.textContent = `${t.char} (${t.noteLabel})`;
+        if (hudDesc) hudDesc.textContent = `${Math.round(sungHz)} Hz · цель ${Math.round(t.targetHz)} Hz`;
+
+        nasalGain.gain.setTargetAtTime(g.nasal * 1.1, now, 0.015);
+        oralGain.gain.setTargetAtTime(Math.max(0.05, g.lO * 1.35), now, 0.015);
+
+        if (g.burstProb > 0.62 && t.burst) {
+          voiceGateGain.gain.setTargetAtTime(0.0, now, 0.01);
+          fricativeGain.gain.setTargetAtTime(0.0, now, 0.01);
+          await new Promise(r => setTimeout(r, t.durMs * 0.55));
+          triggerConsonantBurst(t.burst, g.burstProb * 0.65);
+          await new Promise(r => setTimeout(r, t.durMs * 0.45));
+          continue;
+        }
+
+        if (g.fricLevel > 0.14 && (t.kind === 'fric' || t.kind === 'vfric' || t.kind === 'affricate')) {
+          oralGain.gain.setTargetAtTime(t.voiceLevel > 0.1 ? 0.55 : 0.25, now, 0.015);
+          fricativeFilter.frequency.setTargetAtTime(t.fricFreq || 3250, now, 0.016);
+          if (fricativeHighFilter) fricativeHighFilter.frequency.setTargetAtTime(t.fricHighFreq || 5600, now, 0.016);
+          fricativeGain.gain.setTargetAtTime(Math.min(0.28, g.fricLevel * 0.65), now, 0.018);
+        } else {
+          fricativeGain.gain.setTargetAtTime(0.0, now, 0.018);
+        }
+
+        voiceGateGain.gain.setTargetAtTime(t.voiceLevel, now, 0.015);
+        await new Promise(r => setTimeout(r, t.durMs));
+      }
+
+      if (audioCtx) {
+        voiceGateGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.035);
+        fricativeGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.025);
+      }
+      state.overrideExactPitchHz = null;
+      state.vibratoDepth = prevVibrato;
+      state.isSingingAI = false;
+      renderSongKaraokeStrip(song, -1);
+      if (hudBox) hudBox.classList.add('hidden');
+    }
+
+    // =========================================================================
+    // AI BRAIN MODAL, DIRECT HTML DOWNLOAD & GLOBAL DASHBOARD
+    // =========================================================================
+    function downloadFullSiteHtmlFile() {
+      const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+      const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'index.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Файл index.html скачан! Загружай его на GitHub.');
+    }
+
+    function buildMemoryExportPayload() {
+      const customWords = dynamicCorpus.filter(w => !BASE_CORPUS.includes(w));
+      return JSON.stringify({
+        version: 4,
+        exportedAt: new Date().toISOString(),
+        memory: aiTrainer.memory,
+        phonemeStats: aiTrainer.phonemeStats,
+        songsMemory: songTrainer.memory,
+        customWords,
+        synthesizedWords: Array.from(synthesizedWordsSet)
+      });
+    }
+
+    function applyImportedMemoryObject(parsed) {
+      if (parsed && (parsed.memory || parsed.songsMemory)) {
+        if (parsed.memory) aiTrainer.memory = parsed.memory;
+        if (parsed.phonemeStats) aiTrainer.phonemeStats = parsed.phonemeStats;
+        if (parsed.songsMemory) songTrainer.memory = parsed.songsMemory;
+        if (Array.isArray(parsed.customWords)) {
+          parsed.customWords.forEach(w => addCustomWordToCorpus(w));
+        }
+        if (Array.isArray(parsed.synthesizedWords)) {
+          parsed.synthesizedWords.forEach(w => {
+            addCustomWordToCorpus(w);
+            synthesizedWordsSet.add(w);
+          });
+        }
+        Object.keys(aiTrainer.memory).forEach(w => addCustomWordToCorpus(w));
+        initPhonemeStats();
+        saveAiMemory();
+        saveSongMemory();
+        selectWordForTraining(aiTrainer.currentWord);
+        selectSongForTraining(songTrainer.activeSongId);
+        showToast(`Загружено: ${Object.keys(aiTrainer.memory).length} сл. и ${Object.keys(songTrainer.memory).length} пес.!`);
+        return true;
+      }
+      showToast('Неверный формат памяти');
+      return false;
+    }
+
+    function exportMemoryAsFile() {
+      const payload = buildMemoryExportPayload();
+      const blob = new Blob([payload], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vox-mesh-memory-${Object.keys(aiTrainer.memory).length}w-${Object.keys(songTrainer.memory).length}s.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Файл памяти ИИ скачан!');
+    }
+
+    function copyMemoryCode() {
+      const payload = buildMemoryExportPayload();
+      copyTextFallback(payload, `Код памяти (${Object.keys(aiTrainer.memory).length} сл., ${Object.keys(songTrainer.memory).length} пес.) скопирован!`);
+    }
+
+    function initAiBrainModal() {
+      const aiBrainModal = document.getElementById('ai-brain-modal');
+      const btnOpen = document.getElementById('btn-open-ai-brain');
+      const btnClose = document.getElementById('btn-close-ai-brain');
+      const btnDownloadHtml = document.getElementById('btn-download-site-html');
+      const btnWipe = document.getElementById('btn-ai-wipe-memory');
+      const btnExport = document.getElementById('btn-ai-export-memory');
+      const btnCopy = document.getElementById('btn-ai-copy-memory');
+      const btnImport = document.getElementById('btn-ai-import-memory');
+      const fileInput = document.getElementById('ai-import-file-input');
+      const pasteBox = document.getElementById('ai-paste-box');
+      const pasteInput = document.getElementById('ai-paste-input');
+      const btnApplyPaste = document.getElementById('btn-ai-apply-paste');
+
+      if (btnDownloadHtml) {
+        btnDownloadHtml.addEventListener('click', downloadFullSiteHtmlFile);
+      }
+
+      if (btnOpen && aiBrainModal) {
+        btnOpen.addEventListener('click', () => {
+          updateAiGlobalDashboard();
+          aiBrainModal.classList.remove('hidden');
+          aiBrainModal.classList.add('flex');
+        });
+      }
+
+      if (btnClose && aiBrainModal) {
+        btnClose.addEventListener('click', () => {
+          aiBrainModal.classList.add('hidden');
+          aiBrainModal.classList.remove('flex');
+        });
+      }
+
+      if (aiBrainModal) {
+        aiBrainModal.addEventListener('click', (e) => {
+          if (e.target === aiBrainModal) {
+            aiBrainModal.classList.add('hidden');
+            aiBrainModal.classList.remove('flex');
+          }
+        });
+      }
+
+      if (btnWipe) {
+        btnWipe.addEventListener('click', () => {
+          if (aiTrainer.isTraining) setAutoBabble(false);
+          if (songTrainer.isTraining) setSongTraining(false);
+          aiTrainer.memory = {};
+          aiTrainer.phonemeStats = {};
+          songTrainer.memory = {};
+          dynamicCorpus = [...BASE_CORPUS];
+          synthesizedWordsSet.clear();
+          initPhonemeStats();
+          try { localStorage.removeItem(AI_MEMORY_STORAGE_KEY); } catch (e) {}
+          try { localStorage.removeItem(AI_SONGS_STORAGE_KEY); } catch (e) {}
+          try { window.name = ''; } catch (e) {}
+          selectWordForTraining('МАМА');
+          selectSongForTraining(SONG_CORPUS[0].id);
+          renderAiMemoryList();
+          updateAiGlobalDashboard();
+          showToast('Вся память ИИ очищена');
+        });
+      }
+
+      if (btnExport) btnExport.addEventListener('click', exportMemoryAsFile);
+      if (btnCopy) btnCopy.addEventListener('click', copyMemoryCode);
+
+      if (btnImport && fileInput) {
+        btnImport.addEventListener('click', () => {
+          if (pasteBox) {
+            pasteBox.classList.remove('hidden');
+            pasteBox.classList.add('flex');
+          }
+          fileInput.click();
+        });
+        fileInput.addEventListener('change', (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            try {
+              applyImportedMemoryObject(JSON.parse(ev.target.result));
+            } catch (err) {
+              showToast('Ошибка чтения файла памяти');
+            }
+          };
+          reader.readAsText(file);
+          fileInput.value = '';
+        });
+      }
+
+      if (btnApplyPaste && pasteInput) {
+        btnApplyPaste.addEventListener('click', () => {
+          try {
+            if (applyImportedMemoryObject(JSON.parse(pasteInput.value.trim()))) {
+              pasteInput.value = '';
+              if (pasteBox) {
+                pasteBox.classList.add('hidden');
+                pasteBox.classList.remove('flex');
+              }
+            }
+          } catch (e) {
+            showToast('Неверный JSON-код памяти');
+          }
+        });
+      }
+
+      const btnTabExport = document.getElementById('btn-tab-export-memory');
+      const btnTabCopy = document.getElementById('btn-tab-copy-memory');
+      const btnTabImport = document.getElementById('btn-tab-import-memory');
+      if (btnTabExport) btnTabExport.addEventListener('click', exportMemoryAsFile);
+      if (btnTabCopy) btnTabCopy.addEventListener('click', copyMemoryCode);
+      if (btnTabImport && aiBrainModal) {
+        btnTabImport.addEventListener('click', () => {
+          updateAiGlobalDashboard();
+          aiBrainModal.classList.remove('hidden');
+          aiBrainModal.classList.add('flex');
+          if (pasteBox) {
+            pasteBox.classList.remove('hidden');
+            pasteBox.classList.add('flex');
+          }
+        });
+      }
+    }
+
+    function getAiRankLabel(wordCount, avgAcc, masteredSongsCount) {
+      if (wordCount === 0 && masteredSongsCount === 0) return 'Уровень 0: Чистый лист (пока молчит)';
+      if (masteredSongsCount >= 4 && wordCount >= 30) return 'Уровень 6: Виртуоз вокала и живой речи';
+      if (masteredSongsCount >= 1) return `Уровень 5: Поющий синтезатор (${masteredSongsCount}/5 песен)`;
+      if (avgAcc < 45) return 'Уровень 1: Ранний лепет и мычание';
+      if (wordCount < 5 || avgAcc < 70) return 'Уровень 2: Первые узнаваемые слоги';
+      if (wordCount < 25 || avgAcc < 85) return 'Уровень 3: Уверенный ученик артикуляции';
+      return 'Уровень 4: Синтетический диктор';
+    }
+
+    function updateAiGlobalDashboard() {
+      const keys = Object.keys(aiTrainer.memory);
+      const wordCount = keys.length;
+      let sumAcc = 0;
+      let totalGens = 0;
+
+      keys.forEach(k => {
+        const item = aiTrainer.memory[k];
+        sumAcc += (item.fitness || 0);
+        totalGens += (item.generation || 0);
+      });
+
+      const songKeys = Object.keys(songTrainer.memory);
+      let masteredSongsCount = 0;
+      songKeys.forEach(sk => {
+        const sItem = songTrainer.memory[sk];
+        if ((sItem.fitness || 0) >= 85) masteredSongsCount++;
+        totalGens += (sItem.generation || 0);
+      });
+
+      const avgAcc = wordCount > 0 ? (sumAcc / wordCount) : 0;
+      const vocabFactor = Math.min(1, wordCount / 12);
+      const overallPct = (wordCount > 0 || masteredSongsCount > 0)
+        ? Math.min(100, Math.round(avgAcc * (0.4 + 0.4 * vocabFactor) + (masteredSongsCount / SONG_CORPUS.length) * 20))
+        : 0;
+
+      const headerSummary = document.getElementById('header-ai-summary');
+      if (headerSummary) {
+        headerSummary.textContent = `ИИ: ${wordCount} сл. · ${masteredSongsCount}/5 пес.`;
+      }
+
+      const rankEl = document.getElementById('modal-ai-rank');
+      if (rankEl) rankEl.textContent = getAiRankLabel(wordCount, avgAcc, masteredSongsCount);
+
+      const overallPctEl = document.getElementById('modal-ai-overall-pct');
+      const overallBarEl = document.getElementById('modal-ai-overall-bar');
+      if (overallPctEl) overallPctEl.textContent = `${overallPct}%`;
+      if (overallBarEl) overallBarEl.style.width = `${overallPct}%`;
+
+      const countEl = document.getElementById('modal-ai-words-count');
+      const songsEl = document.getElementById('modal-ai-songs-count');
+      const gensEl = document.getElementById('modal-ai-total-gens');
+      if (countEl) countEl.textContent = wordCount;
+      if (songsEl) songsEl.textContent = `${masteredSongsCount} / ${SONG_CORPUS.length}`;
+      if (gensEl) gensEl.textContent = totalGens;
+
+      const modalSongsEl = document.getElementById('modal-ai-songs-list');
+      if (modalSongsEl) {
+        modalSongsEl.innerHTML = '';
+        SONG_CORPUS.forEach(song => {
+          const item = songTrainer.memory[song.id];
+          const pct = item ? item.fitness.toFixed(1) : '0.0';
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between p-2 rounded-xl bg-slate-950/90 border border-fuchsia-400/20';
+          row.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-white">🎵 ${song.title}</span>
+              <span class="mono text-[11px] px-1.5 py-0.5 rounded bg-fuchsia-500/15 text-fuchsia-300 font-bold">${pct}%</span>
+            </div>
+            <button class="px-2.5 py-1 rounded-lg bg-fuchsia-500/20 hover:bg-fuchsia-500/30 border border-fuchsia-400/40 text-fuchsia-200 text-[11px] font-bold cursor-pointer">
+              🎤 Спеть
+            </button>
+          `;
+          row.querySelector('button').addEventListener('click', () => {
+            const modal = document.getElementById('ai-brain-modal');
+            if (modal) {
+              modal.classList.add('hidden');
+              modal.classList.remove('flex');
+            }
+            singLearnedSong(song.id);
+          });
+          modalSongsEl.appendChild(row);
+        });
+      }
+
+      const dictEl = document.getElementById('modal-ai-dictionary');
+      if (!dictEl) return;
+
+      if (wordCount === 0) {
+        dictEl.innerHTML = `
+          <div class="text-xs text-slate-500 py-3 text-center bg-slate-950/50 rounded-xl border border-white/5">
+            Словарь пока пуст — запусти «Слова ИИ»!
+          </div>`;
+        return;
+      }
+
+      dictEl.innerHTML = '';
+      keys.sort((a, b) => (aiTrainer.memory[b].fitness || 0) - (aiTrainer.memory[a].fitness || 0));
+
+      keys.forEach(word => {
+        const item = aiTrainer.memory[word];
+        const originTag = synthesizedWordsSet.has(word)
+          ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300">ИИ-слово</span>'
+          : (!BASE_CORPUS.includes(word) ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300">Твоё</span>' : '');
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between p-2 rounded-xl bg-slate-950/90 border border-white/10';
+        row.innerHTML = `
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-extrabold text-white">${word}</span>
+            ${originTag}
+            <span class="mono text-[11px] px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 font-bold">${item.fitness.toFixed(1)}%</span>
+          </div>
+          <button class="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-[11px] font-bold cursor-pointer transition shrink-0">
+            ▶ Проверить
+          </button>
+        `;
+        row.querySelector('button').addEventListener('click', () => {
+          const modal = document.getElementById('ai-brain-modal');
+          if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+          }
+          selectWordForTraining(word);
+          playLearnedGenome(word);
+        });
+        dictEl.appendChild(row);
+      });
+    }
+
+    // =========================================================================
+    // TAB 4: 4-TRACK VOCAL LOOPER & URL HASH SHARING
+    // =========================================================================
+    const LOOP_DURATION = 4.0;
+    const tracks = [
+      { id: 0, name: 'Дорожка 1 (Бас)', frames: [], recording: false, muted: false },
+      { id: 1, name: 'Дорожка 2 (Тенор)', frames: [], recording: false, muted: false },
+      { id: 2, name: 'Дорожка 3 (Сопрано)', frames: [], recording: false, muted: false },
+      { id: 3, name: 'Дорожка 4 (Эффект)', frames: [], recording: false, muted: false }
+    ];
+    let loopStartTime = performance.now();
+    let activeLoopPlayback = false;
+    let recordingTrackId = null;
+
+    function renderLooperTracksUI() {
+      const container = document.getElementById('looper-tracks');
+      if (!container) return;
+      container.innerHTML = '';
+
+      tracks.forEach(tr => {
+        const hasData = tr.frames.length > 0;
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-950/90 border border-white/10';
+        row.innerHTML = `
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-2.5 h-2.5 rounded-full ${tr.recording ? 'bg-rose-500 recording-dot' : (hasData ? 'bg-emerald-400' : 'bg-slate-700')}"></span>
+            <span class="text-xs font-bold text-slate-200 truncate">${tr.name}</span>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button data-act="rec" data-id="${tr.id}" class="px-2.5 py-1 rounded-lg text-[11px] font-extrabold cursor-pointer transition ${tr.recording ? 'bg-rose-500 text-white' : 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-400/30'}">
+              ${tr.recording ? '⏹ Стоп' : '● Запись'}
+            </button>
+            <button data-act="mute" data-id="${tr.id}" class="px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer border border-white/10 ${tr.muted ? 'bg-slate-800 text-slate-500' : 'bg-slate-800 text-cyan-300'}">
+              ${tr.muted ? '🔇' : '🔊'}
+            </button>
+            <button data-act="clear" data-id="${tr.id}" class="px-2 py-1 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-400 cursor-pointer">
+              ✕
+            </button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+
+      container.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = parseInt(btn.dataset.id, 10);
+          const act = btn.dataset.act;
+          const tr = tracks[id];
+
+          if (act === 'rec') {
+            if (!state.isAudioRunning) initAudio();
+            if (tr.recording) {
+              tr.recording = false;
+              recordingTrackId = null;
+            } else {
+              tracks.forEach(t => t.recording = false);
+              tr.frames = [];
+              tr.recording = true;
+              tr.muted = false;
+              recordingTrackId = id;
+              loopStartTime = performance.now();
+              showToast(`Запись дорожки ${id + 1} (4 секунды)...`);
+            }
+          } else if (act === 'mute') {
+            tr.muted = !tr.muted;
+          } else if (act === 'clear') {
+            tr.frames = [];
+            tr.recording = false;
+            if (recordingTrackId === id) recordingTrackId = null;
+          }
+          renderLooperTracksUI();
+        });
+      });
+    }
+
+    function updateLooper(now) {
+      const elapsed = ((now - loopStartTime) / 1000) % LOOP_DURATION;
+
+      if (recordingTrackId !== null) {
+        const tr = tracks[recordingTrackId];
+        if (tr && tr.recording) {
+          if (tr.frames.length > 5 && elapsed < 0.08 && (now - loopStartTime) > 1000) {
+            tr.recording = false;
+            recordingTrackId = null;
+            renderLooperTracksUI();
+            showToast('Дорожка записана и зациклена!');
+          } else {
+            tr.frames.push({
+              t: Number(elapsed.toFixed(2)),
+              tx: Number(state.tongueX.toFixed(2)),
+              ty: Number(state.tongueY.toFixed(2)),
+              lo: Number(state.lipOpen.toFixed(2)),
+              lr: Number(state.lipRound.toFixed(2)),
+              ly: Number(state.larynxY.toFixed(2)),
+              v: state.isVoicing ? 1 : 0
+            });
+          }
+        }
+      }
+
+      let anyPlaying = false;
+      for (const tr of tracks) {
+        if (tr.muted || tr.recording || tr.frames.length === 0) continue;
+        let closest = tr.frames[0];
+        let minDiff = Infinity;
+        for (const f of tr.frames) {
+          const d = Math.abs(f.t - elapsed);
+          if (d < minDiff) { minDiff = d; closest = f; }
+        }
+        if (closest && closest.v && !state.pointerDown && !state.isSpeakingTTS && !state.isSingingAI && !state.isBabbling) {
+          anyPlaying = true;
+          state.targetTongueX = closest.tx;
+          state.targetTongueY = closest.ty;
+          state.targetLipOpen = closest.lo;
+          state.targetLipRound = closest.lr;
+          state.targetLarynxY = closest.ly;
+        }
+      }
+      activeLoopPlayback = anyPlaying;
+    }
+
+    function encodeLoopToHash() {
+      const compact = tracks.map(t => t.frames.filter((_, idx) => idx % 3 === 0));
+      if (compact.every(arr => arr.length === 0)) {
+        showToast('Сначала запиши хотя бы одну дорожку!');
+        return;
+      }
+      const encoded = btoa(JSON.stringify(compact));
+      window.location.hash = 'loop=' + encoded;
+      copyTextFallback(window.location.href, 'Ссылка на мелодию скопирована!');
+    }
+
+    function parseSharedHash() {
+      const hash = window.location.hash;
+      if (hash.startsWith('#loop=')) {
+        try {
+          const raw = atob(hash.replace('#loop=', ''));
+          const parsed = JSON.parse(raw);
+          parsed.forEach((arr, idx) => {
+            if (tracks[idx]) tracks[idx].frames = arr;
+          });
+          renderLooperTracksUI();
+          showToast('Загружена мелодия из ссылки! Нажми «Включить голос»');
+        } catch (e) {}
+      }
+    }
+
+    // =========================================================================
+    // TAB 5: AI PRONUNCIATION EXAM CHALLENGE
+    // =========================================================================
+    const EXAM_WORDS = [
+      {
+        word: 'МАМА',
+        hint: 'Сомкни губы [М] -> широко открой [А] -> снова [М] -> [А]',
+        targets: [
+          { tX: 0.50, tY: 0.50, lO: 0.05, lR: 0.35 },
+          { tX: 0.35, tY: 0.25, lO: 0.85, lR: 0.15 }
+        ]
+      },
+      {
+        word: 'ПРИВЕТ',
+        hint: 'Узкие губы и высокий язык [И] -> открытый [Э]',
+        targets: [
+          { tX: 0.85, tY: 0.82, lO: 0.30, lR: 0.08 },
+          { tX: 0.72, tY: 0.55, lO: 0.65, lR: 0.10 }
+        ]
+      },
+      {
+        word: 'МЯУ',
+        hint: 'Закрытый рот [М] -> широкий [А] -> вытянутые трубочкой губы [У]',
+        targets: [
+          { tX: 0.50, tY: 0.50, lO: 0.05, lR: 0.35 },
+          { tX: 0.35, tY: 0.25, lO: 0.85, lR: 0.15 },
+          { tX: 0.18, tY: 0.78, lO: 0.25, lR: 0.95 }
+        ]
+      },
+      {
+        word: 'БОРЩ',
+        hint: 'Округлые губы [О] -> резкий подъём языка вперёд [Щ]',
+        targets: [
+          { tX: 0.22, tY: 0.48, lO: 0.55, lR: 0.85 },
+          { tX: 0.84, tY: 0.86, lO: 0.28, lR: 0.25 }
+        ]
+      },
+      {
+        word: 'ОГОНЬ',
+        hint: 'Округлый [О] -> широкий [А] -> мягкий высокий язык [НЬ]',
+        targets: [
+          { tX: 0.22, tY: 0.48, lO: 0.55, lR: 0.85 },
+          { tX: 0.88, tY: 0.86, lO: 0.30, lR: 0.05 }
+        ]
+      }
+    ];
+
+    let examIdx = 0;
+    let examRunning = false;
+    let examTimeLeft = 8.0;
+    let examBestScore = 0;
+    let examHitStages = new Set();
+
+    function updateExam(dt) {
+      if (!examRunning) return;
+      examTimeLeft = Math.max(0, examTimeLeft - dt);
+      const timerEl = document.getElementById('exam-timer');
+      if (timerEl) timerEl.textContent = examTimeLeft.toFixed(1) + ' сек';
+
+      const currentWordObj = EXAM_WORDS[examIdx];
+      if (state.isVoicing) {
+        currentWordObj.targets.forEach((tgt, idx) => {
+          const dist = Math.hypot(state.tongueX - tgt.tX, state.tongueY - tgt.tY, state.lipOpen - tgt.lO);
+          if (dist < 0.36) examHitStages.add(idx);
+        });
+
+        const stageRatio = examHitStages.size / currentWordObj.targets.length;
+        const instantQuality = Math.min(100, Math.round(stageRatio * 88 + (state.lipOpen > 0.1 ? 11 : 0)));
+        if (instantQuality > examBestScore) {
+          examBestScore = instantQuality;
+          const scoreVal = document.getElementById('exam-score-val');
+          const scoreBar = document.getElementById('exam-score-bar');
+          if (scoreVal) scoreVal.textContent = examBestScore + '%';
+          if (scoreBar) scoreBar.style.width = examBestScore + '%';
+        }
+      }
+
+      if (examTimeLeft <= 0) {
+        examRunning = false;
+        const btnStart = document.getElementById('btn-exam-start');
+        const verdictEl = document.getElementById('exam-verdict');
+        if (btnStart) btnStart.textContent = '▶ Попробовать снова';
+        let verdict = '';
+        if (examBestScore >= 85) verdict = `🔥 ${examBestScore}% — Почти живой человек! Идеальная дикция.`;
+        else if (examBestScore >= 55) verdict = `😎 ${examBestScore}% — Неплохо! Слово угадывается с акцентом.`;
+        else verdict = `🤖 ${examBestScore}% — Звучит как задумчивый пылесос. Попробуй ещё!`;
+        if (verdictEl) verdictEl.textContent = verdict;
+      }
+    }
+
+    function copyTextFallback(text, successMsg) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast(successMsg);
+      } catch (e) {
+        showToast('Не удалось скопировать');
+      }
+      document.body.removeChild(ta);
+    }
+
+    // =========================================================================
+    // 3D HOLOGRAPHIC WIREFRAME HEAD CANVAS & INTERACTION
+    // =========================================================================
+    const tractCanvas = document.getElementById('tract-canvas');
+    const tractCtx = tractCanvas.getContext('2d');
+    const scopeCanvas = document.getElementById('scope-canvas');
+    const scopeCtx = scopeCanvas.getContext('2d');
+
+    let nodes = {
+      tongue: { x: 0, y: 0, r: 18, color: '#38bdf8', label: 'ЯЗЫК', alpha: 0 },
+      lips:   { x: 0, y: 0, r: 16, color: '#f472b6', label: 'ГУБЫ', alpha: 0 },
+      larynx: { x: 0, y: 0, r: 15, color: '#fbbf24', label: 'ГОРТАНЬ', alpha: 0 }
+    };
+    let hoverZone = null;
+
+    const airflowParticles = Array.from({ length: 28 }, (_, i) => ({
+      t: i / 28,
+      speed: 0.7 + Math.random() * 0.6,
+      offset: (Math.random() - 0.5) * 0.7,
+      nasal: i % 4 === 0
+    }));
+
+    function resizeCanvases() {
+      const dpr = window.devicePixelRatio || 1;
+      [tractCanvas, scopeCanvas].forEach(c => {
+        if (!c) return;
+        const rect = c.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          c.width = rect.width * dpr;
+          c.height = rect.height * dpr;
+          const ctx = c.getContext('2d');
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.scale(dpr, dpr);
+        }
+      });
+    }
+    window.addEventListener('resize', resizeCanvases);
+
+    function getPointerPos(e) {
+      const rect = tractCanvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    function drawWireframeHead(w, h, time) {
+      if (!w || !h) return;
+      tractCtx.clearRect(0, 0, w, h);
+
+      tractCtx.strokeStyle = 'rgba(56, 189, 248, 0.045)';
+      tractCtx.lineWidth = 1;
+      const gridStep = 32;
+      for (let gx = 0; gx < w; gx += gridStep) {
+        tractCtx.beginPath(); tractCtx.moveTo(gx, 0); tractCtx.lineTo(gx, h); tractCtx.stroke();
+      }
+      for (let gy = 0; gy < h; gy += gridStep) {
+        tractCtx.beginPath(); tractCtx.moveTo(0, gy); tractCtx.lineTo(w, gy); tractCtx.stroke();
+      }
+
+      const cx = w * 0.46;
+      const cy = h * 0.48;
+      const scale = Math.min(w, h) / 410;
+      const vibOffset = state.isVoicing ? Math.sin(time * 0.09) * 3.0 : 0;
+      const idleBreath = Math.sin(time * 0.0022) * 1.5 * scale;
+
+      const jawDrop = state.lipOpen * 30 * scale * state.jawScale;
+      const lipProtrude = (state.lipRound - 0.25) * 20 * scale * state.snoutScale;
+      const larynxShift = (0.5 - state.larynxY) * 38 * scale;
+
+      const palateY = cy - 22 * scale;
+      const noseBridgeX = cx + 82 * scale;
+      const noseBridgeY = cy - 62 * scale;
+      const noseTipX = cx + (114 * scale * state.snoutScale);
+      const noseTipY = cy - 26 * scale;
+      const subnasaleX = cx + (94 * scale * state.snoutScale);
+      const subnasaleY = cy - 15 * scale;
+
+      const lipTopX = cx + (104 * scale * state.snoutScale) + lipProtrude;
+      const lipTopY = cy - 4 * scale - state.lipOpen * 5 * scale;
+      const lipBotX = cx + (101 * scale * state.snoutScale) + lipProtrude * 0.92;
+      const lipBotY = cy + 6 * scale + jawDrop;
+      const throatX = cx - 30 * scale;
+      const larynxBaseY = cy + 124 * scale + larynxShift;
+
+      nodes.tongue.color = state.themeColor;
+      nodes.lips.color = state.accentColor;
+
+      function traceSmoothSpline(ctx, pts, tension = 0.5) {
+        if (pts.length < 2) return;
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 0; i < pts.length - 1; i++) {
+          const p0 = pts[i === 0 ? i : i - 1];
+          const p1 = pts[i];
+          const p2 = pts[i + 1];
+          const p3 = pts[i + 2 < pts.length ? i + 2 : i + 1];
+          const cp1x = p1[0] + (p2[0] - p0[0]) / 6 * tension * 2;
+          const cp1y = p1[1] + (p2[1] - p0[1]) / 6 * tension * 2;
+          const cp2x = p2[0] - (p3[0] - p1[0]) / 6 * tension * 2;
+          const cp2y = p2[1] - (p3[1] - p1[1]) / 6 * tension * 2;
+          ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1]);
+        }
+      }
+
+      tractCtx.save();
+
+      const upperLandmarks = [
+        [cx - 56 * scale, cy + 168 * scale],
+        [cx - 60 * scale, cy + 96 * scale],
+        [cx - 68 * scale, cy + 36 * scale],
+        [cx - 104 * scale, cy - 12 * scale],
+        [cx - 116 * scale, cy - 68 * scale + idleBreath * 0.5],
+        [cx - 88 * scale, cy - 124 * scale + idleBreath * 0.8],
+        [cx - 26 * scale, cy - 154 * scale + idleBreath],
+        [cx + 38 * scale, cy - 144 * scale + idleBreath * 0.8],
+        [cx + 78 * scale, cy - 110 * scale + idleBreath * 0.4],
+        [cx + 87 * scale, cy - 76 * scale],
+        [noseBridgeX, noseBridgeY],
+        [noseTipX, noseTipY],
+        [subnasaleX, subnasaleY],
+        [lipTopX, lipTopY],
+        [lipTopX - 15 * scale, lipTopY - 1 * scale]
+      ];
+
+      const lowerLandmarks = [
+        [lipBotX - 14 * scale, lipBotY + 1 * scale],
+        [lipBotX, lipBotY],
+        [cx + (91 * scale * state.snoutScale) + lipProtrude * 0.35, cy + 20 * scale + jawDrop],
+        [cx + (98 * scale * state.jawScale), cy + 40 * scale + jawDrop],
+        [cx + (82 * scale * state.jawScale), cy + 56 * scale + jawDrop],
+        [cx + 34 * scale, cy + 64 * scale + jawDrop * 0.65],
+        [cx - 2 * scale, cy + 84 * scale + jawDrop * 0.25],
+        [cx - 4 * scale, cy + 168 * scale]
+      ];
+
+      const skinGrad = tractCtx.createLinearGradient(cx - 116 * scale, cy - 154 * scale, noseTipX, cy + 150 * scale);
+      skinGrad.addColorStop(0, state.themeColor + '08');
+      skinGrad.addColorStop(0.55, state.themeColor + '16');
+      skinGrad.addColorStop(1, state.accentColor + '12');
+
+      tractCtx.fillStyle = skinGrad;
+      tractCtx.beginPath();
+      traceSmoothSpline(tractCtx, upperLandmarks, 0.5);
+      tractCtx.lineTo(lowerLandmarks[0][0], lowerLandmarks[0][1]);
+      traceSmoothSpline(tractCtx, lowerLandmarks, 0.5);
+      tractCtx.closePath();
+      tractCtx.fill();
+
+      tractCtx.strokeStyle = state.themeColor + 'cc';
+      tractCtx.lineWidth = 2.1;
+      tractCtx.shadowColor = state.themeColor;
+      tractCtx.shadowBlur = 11;
+
+      tractCtx.beginPath();
+      traceSmoothSpline(tractCtx, upperLandmarks, 0.5);
+      tractCtx.stroke();
+
+      tractCtx.beginPath();
+      traceSmoothSpline(tractCtx, lowerLandmarks, 0.5);
+      tractCtx.stroke();
+      tractCtx.shadowBlur = 0;
+
+      tractCtx.fillStyle = state.accentColor + '33';
+      tractCtx.strokeStyle = state.accentColor + '99';
+      tractCtx.lineWidth = 1.4;
+
+      tractCtx.beginPath();
+      tractCtx.moveTo(subnasaleX + 1 * scale, subnasaleY + 4 * scale);
+      tractCtx.quadraticCurveTo(lipTopX + 2 * scale, lipTopY - 3 * scale, lipTopX, lipTopY);
+      tractCtx.quadraticCurveTo(lipTopX - 8 * scale, lipTopY + 3 * scale, lipTopX - 15 * scale, lipTopY - 1 * scale);
+      tractCtx.quadraticCurveTo(lipTopX - 7 * scale, lipTopY - 5 * scale, subnasaleX + 1 * scale, subnasaleY + 4 * scale);
+      tractCtx.fill();
+      tractCtx.stroke();
+
+      tractCtx.beginPath();
+      tractCtx.moveTo(lipBotX - 14 * scale, lipBotY + 1 * scale);
+      tractCtx.quadraticCurveTo(lipBotX - 7 * scale, lipBotY - 3 * scale, lipBotX, lipBotY);
+      tractCtx.quadraticCurveTo(lipBotX + 3 * scale, lipBotY + 6 * scale, cx + (91 * scale * state.snoutScale) + lipProtrude * 0.35, cy + 20 * scale + jawDrop);
+      tractCtx.quadraticCurveTo(lipBotX - 6 * scale, lipBotY + 4 * scale, lipBotX - 14 * scale, lipBotY + 1 * scale);
+      tractCtx.fill();
+      tractCtx.stroke();
+
+      tractCtx.strokeStyle = state.themeColor + '22';
+      tractCtx.lineWidth = 1.0;
+      for (let layer = 1; layer <= 3; layer++) {
+        const inset = layer * 13 * scale;
+        const innerPts = [
+          [cx - 56 * scale + inset * 0.35, cy + 160 * scale],
+          [cx - 68 * scale + inset * 0.45, cy + 36 * scale],
+          [cx - 104 * scale + inset * 0.9, cy - 12 * scale],
+          [cx - 116 * scale + inset, cy - 68 * scale + idleBreath * 0.5],
+          [cx - 88 * scale + inset * 0.85, cy - 124 * scale + inset * 0.55 + idleBreath * 0.8],
+          [cx - 26 * scale, cy - 154 * scale + inset + idleBreath],
+          [cx + 38 * scale - inset * 0.25, cy - 144 * scale + inset * 0.9 + idleBreath * 0.8],
+          [cx + 76 * scale - inset * 0.35, cy - 106 * scale + inset * 0.55]
+        ];
+        tractCtx.beginPath();
+        traceSmoothSpline(tractCtx, innerPts, 0.5);
+        tractCtx.stroke();
+      }
+
+      const eyeX = cx + 62 * scale;
+      const eyeY = cy - 62 * scale;
+      tractCtx.strokeStyle = state.themeColor + '77';
+      tractCtx.lineWidth = 1.4;
+      tractCtx.beginPath();
+      tractCtx.moveTo(eyeX - 16 * scale, eyeY - 8 * scale);
+      tractCtx.quadraticCurveTo(eyeX + 2 * scale, eyeY - 12 * scale, eyeX + 16 * scale, eyeY - 4 * scale);
+      tractCtx.stroke();
+
+      tractCtx.beginPath();
+      tractCtx.ellipse(eyeX, eyeY, 11.5 * scale, 5.5 * scale, 0.06, 0, Math.PI * 2);
+      tractCtx.stroke();
+      tractCtx.fillStyle = state.themeColor;
+      tractCtx.beginPath();
+      tractCtx.arc(eyeX + 3.5 * scale, eyeY, 2.5 * scale, 0, Math.PI * 2);
+      tractCtx.fill();
+
+      const earX = cx - 24 * scale;
+      const earY = cy - 40 * scale;
+      tractCtx.strokeStyle = state.themeColor + '33';
+      tractCtx.lineWidth = 1.3;
+      tractCtx.beginPath();
+      tractCtx.ellipse(earX, earY, 10 * scale, 21 * scale, -0.14, -Math.PI * 0.45, Math.PI * 0.55);
+      tractCtx.stroke();
+
+      tractCtx.strokeStyle = state.themeColor + '20';
+      tractCtx.lineWidth = 1.4;
+      tractCtx.setLineDash([5, 5]);
+      tractCtx.beginPath();
+      tractCtx.moveTo(cx - 52 * scale, cy + 162 * scale);
+      tractCtx.quadraticCurveTo(cx - 58 * scale, cy + 72 * scale, cx - 46 * scale, cy + 4 * scale);
+      tractCtx.stroke();
+      tractCtx.setLineDash([]);
+      tractCtx.restore();
+
+      tractCtx.save();
+      const nasalGlow = 0.22 + state.nasality * 0.65;
+      tractCtx.strokeStyle = `rgba(251, 191, 36, ${nasalGlow})`;
+      tractCtx.lineWidth = 1.7;
+      tractCtx.setLineDash([4, 4]);
+      tractCtx.beginPath();
+      tractCtx.moveTo(throatX, cy - 22 * scale);
+      tractCtx.quadraticCurveTo(cx + 26 * scale, cy - 68 * scale, noseTipX - 10 * scale, noseTipY + 4 * scale);
+      tractCtx.stroke();
+      tractCtx.restore();
+
+      tractCtx.save();
+      tractCtx.strokeStyle = state.themeColor;
+      tractCtx.lineWidth = 2.4;
+      tractCtx.shadowColor = state.themeColor;
+      tractCtx.shadowBlur = 9;
+      tractCtx.beginPath();
+      tractCtx.moveTo(throatX - 14 * scale, larynxBaseY);
+      tractCtx.lineTo(throatX - 8 * scale, cy - 18 * scale);
+      tractCtx.quadraticCurveTo(cx + 24 * scale, palateY - 12 * scale, lipTopX - 15 * scale, lipTopY - 1 * scale);
+      tractCtx.stroke();
+
+      tractCtx.beginPath();
+      tractCtx.quadraticCurveTo(throatX - 1 * scale, cy - 14 * scale, throatX - 3 * scale, cy - 3 * scale + vibOffset * 0.4);
+      tractCtx.stroke();
+      tractCtx.restore();
+
+      const tMinX = throatX + 10 * scale;
+      const tMaxX = lipBotX - 18 * scale;
+      const tMinY = cy + 38 * scale + jawDrop * 0.5;
+      const tMaxY = palateY + 10 * scale;
+
+      const tCtrlX = tMinX + state.tongueX * (tMaxX - tMinX);
+      const tCtrlY = tMinY - state.tongueY * (tMinY - tMaxY) + vibOffset * 0.35;
+
+      tractCtx.save();
+      const tStartX = throatX + 15 * scale;
+      const tStartY = larynxBaseY;
+
+      const tongueGrad = tractCtx.createLinearGradient(tStartX, tCtrlY, lipBotX - 14 * scale, tStartY);
+      tongueGrad.addColorStop(0, state.accentColor + '44');
+      tongueGrad.addColorStop(0.6, state.accentColor + '22');
+      tongueGrad.addColorStop(1, state.accentColor + '0a');
+      tractCtx.fillStyle = tongueGrad;
+      tractCtx.beginPath();
+      tractCtx.moveTo(tStartX, tStartY);
+      tractCtx.quadraticCurveTo(tCtrlX, tCtrlY, lipBotX - 15 * scale, lipBotY + 1 * scale);
+      tractCtx.quadraticCurveTo(cx + 32 * scale, cy + 56 * scale + jawDrop * 0.55, tStartX, tStartY);
+      tractCtx.closePath();
+      tractCtx.fill();
+
+      tractCtx.strokeStyle = state.accentColor;
+      tractCtx.lineWidth = 2.6;
+      tractCtx.shadowColor = state.accentColor;
+      tractCtx.shadowBlur = 13;
+      tractCtx.beginPath();
+      tractCtx.moveTo(tStartX, tStartY);
+      tractCtx.quadraticCurveTo(tCtrlX, tCtrlY, lipBotX - 15 * scale, lipBotY + 1 * scale);
+      tractCtx.stroke();
+
+      tractCtx.shadowBlur = 0;
+      tractCtx.lineWidth = 1;
+      tractCtx.strokeStyle = state.accentColor + '40';
+      for (let f = 1; f <= 2; f++) {
+        const ratio = f * 0.32;
+        tractCtx.beginPath();
+        tractCtx.moveTo(tStartX + 4 * scale, tStartY);
+        tractCtx.quadraticCurveTo(
+          tCtrlX,
+          tCtrlY + ratio * 28 * scale,
+          lipBotX - 20 * scale,
+          lipBotY + ratio * 8 * scale
+        );
+        tractCtx.stroke();
+      }
+      tractCtx.restore();
+
+      const cordY = larynxBaseY - 12 * scale;
+      tractCtx.save();
+      for (let r = 0; r < 4; r++) {
+        const ry = cordY + (10 + r * 9) * scale;
+        tractCtx.strokeStyle = 'rgba(251, 191, 36, 0.25)';
+        tractCtx.lineWidth = 1.4;
+        tractCtx.beginPath();
+        tractCtx.moveTo(throatX - 12 * scale, ry);
+        tractCtx.lineTo(throatX + 14 * scale, ry);
+        tractCtx.stroke();
+      }
+
+      tractCtx.strokeStyle = state.isVoicing ? '#fbbf24' : 'rgba(251, 191, 36, 0.45)';
+      tractCtx.lineWidth = state.isVoicing ? 3.5 : 1.8;
+      tractCtx.shadowColor = '#fbbf24';
+      tractCtx.shadowBlur = state.isVoicing ? 14 : 0;
+      tractCtx.beginPath();
+      tractCtx.moveTo(throatX - 15 * scale, cordY);
+      tractCtx.lineTo(throatX + 17 * scale, cordY + vibOffset);
+      tractCtx.stroke();
+      tractCtx.restore();
+
+      const isTrainingAny = aiTrainer.isTraining || songTrainer.isTraining;
+      if (state.isVoicing || isTrainingAny) {
+        tractCtx.save();
+        const flowSpeed = state.isVoicing ? 0.0014 : 0.0007;
+        airflowParticles.forEach(p => {
+          const prog = (p.t + time * flowSpeed * p.speed) % 1;
+          let px, py;
+          if (p.nasal && state.nasality > 0.12) {
+            px = throatX + prog * (cx + 112 * scale - throatX);
+            py = (cy - 22 * scale) - Math.sin(prog * Math.PI) * 52 * scale + p.offset * 12 * scale;
+            tractCtx.fillStyle = `rgba(251, 191, 36, ${(1 - prog) * 0.7})`;
+          } else {
+            if (prog < 0.42) {
+              const u = prog / 0.42;
+              px = throatX + p.offset * 14 * scale;
+              py = cordY - u * (cordY - (palateY + 10 * scale));
+            } else {
+              const u = (prog - 0.42) / 0.58;
+              px = throatX + u * ((lipTopX + lipBotX) * 0.5 - throatX);
+              const baseOralY = (palateY + 12 * scale) * (1 - u) + ((lipTopY + lipBotY) * 0.5) * u;
+              py = baseOralY + p.offset * 18 * scale * state.lipOpen;
+            }
+            tractCtx.fillStyle = (state.isSingingAI ? '#e879f9' : state.themeColor) + 'aa';
+          }
+          tractCtx.beginPath();
+          tractCtx.arc(px, py, (1.6 + (1 - prog) * 1.4) * scale, 0, Math.PI * 2);
+          tractCtx.fill();
+        });
+
+        if (state.isVoicing) {
+          const pulse = (Math.sin(time * 0.015) + 1) * 0.5;
+          tractCtx.strokeStyle = (state.isSingingAI ? '#e879f9' : state.themeColor) + '44';
+          tractCtx.lineWidth = 1.4;
+          tractCtx.beginPath();
+          tractCtx.arc((tCtrlX + cx + 25 * scale) * 0.5, (tCtrlY + palateY) * 0.5, (14 + pulse * 16) * scale, 0, Math.PI * 2);
+          tractCtx.stroke();
+        }
+        tractCtx.restore();
+      }
+
+      nodes.tongue.x = (tStartX + 2 * tCtrlX + lipBotX) * 0.25;
+      nodes.tongue.y = (tStartY + 2 * tCtrlY + lipBotY) * 0.25;
+      nodes.lips.x = (lipTopX + lipBotX) * 0.5;
+      nodes.lips.y = (lipTopY + lipBotY) * 0.5;
+      nodes.larynx.x = throatX;
+      nodes.larynx.y = cordY;
+
+      nodes.tongue._bounds = { minX: tMinX, maxX: tMaxX, minY: tMaxY, maxY: tMinY };
+      nodes.lips._bounds = { baseX: cx + 115 * scale * state.snoutScale, baseY: cy - 6 * scale, scale };
+      nodes.larynx._bounds = { minY: cy + 100 * scale, maxY: cy + 150 * scale };
+
+      nodes.tongue._zone = { x: cx + 22 * scale, y: cy + 8 * scale, rx: 68 * scale, ry: 52 * scale };
+      nodes.lips._zone   = { x: nodes.lips.x, y: nodes.lips.y, rx: 44 * scale, ry: 48 * scale };
+      nodes.larynx._zone = { x: throatX, y: cordY, rx: 44 * scale, ry: 42 * scale };
+
+      Object.entries(nodes).forEach(([key, n]) => {
+        const isActive = state.draggingNode === key;
+        const isHovered = hoverZone === key;
+        const targetAlpha = (isActive || isHovered) ? 1.0 : 0.0;
+        n.alpha += (targetAlpha - n.alpha) * 0.22;
+
+        if (n.alpha < 0.03) return;
+
+        tractCtx.save();
+        tractCtx.globalAlpha = n.alpha;
+
+        tractCtx.strokeStyle = n.color + '44';
+        tractCtx.lineWidth = 1.2;
+        tractCtx.setLineDash([4, 4]);
+        tractCtx.beginPath();
+        tractCtx.ellipse(n._zone.x, n._zone.y, n._zone.rx, n._zone.ry, 0, 0, Math.PI * 2);
+        tractCtx.stroke();
+        tractCtx.setLineDash([]);
+
+        tractCtx.beginPath();
+        tractCtx.arc(n.x, n.y, isActive ? n.r + 3 : n.r, 0, Math.PI * 2);
+        tractCtx.fillStyle = isActive ? n.color : 'rgba(15, 23, 42, 0.85)';
+        tractCtx.fill();
+        tractCtx.lineWidth = 2;
+        tractCtx.strokeStyle = n.color;
+        tractCtx.shadowColor = n.color;
+        tractCtx.shadowBlur = isActive ? 16 : 8;
+        tractCtx.stroke();
+
+        tractCtx.beginPath();
+        tractCtx.arc(n.x, n.y, 3.5, 0, Math.PI * 2);
+        tractCtx.fillStyle = isActive ? '#0f172a' : n.color;
+        tractCtx.fill();
+
+        tractCtx.font = '700 10px "JetBrains Mono", monospace';
+        tractCtx.fillStyle = n.color;
+        tractCtx.textAlign = 'center';
+        tractCtx.fillText(n.label, n.x, n.y - n.r - 6);
+        tractCtx.restore();
+      });
+    }
+
+    function drawOscilloscope() {
+      if (!scopeCanvas) return;
+      const rect = scopeCanvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      if (!w || !h) return;
+      scopeCtx.clearRect(0, 0, w, h);
+
+      scopeCtx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
+      scopeCtx.lineWidth = 1;
+      scopeCtx.beginPath();
+      scopeCtx.moveTo(0, h / 2);
+      scopeCtx.lineTo(w, h / 2);
+      scopeCtx.stroke();
+
+      if (!state.isAudioRunning || !analyserNode) return;
+
+      const bufferLength = analyserNode.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      analyserNode.getByteTimeDomainData(dataArray);
+
+      scopeCtx.lineWidth = 2;
+      scopeCtx.strokeStyle = state.isVoicing
+        ? (state.isSingingAI ? '#e879f9' : state.themeColor)
+        : 'rgba(56, 189, 248, 0.25)';
+      scopeCtx.beginPath();
+
+      const sliceWidth = w / bufferLength;
+      let x = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = (v * h) / 2;
+        if (i === 0) scopeCtx.moveTo(x, y);
+        else scopeCtx.lineTo(x, y);
+        x += sliceWidth;
+      }
+      scopeCtx.lineTo(w, h / 2);
+      scopeCtx.stroke();
+    }
+
+    function detectZoneAtPos(pos, extraPad = 0) {
+      let bestKey = null;
+      let bestScore = Infinity;
+      Object.entries(nodes).forEach(([key, n]) => {
+        if (!n._zone) return;
+        const dx = (pos.x - n._zone.x) / (n._zone.rx + extraPad);
+        const dy = (pos.y - n._zone.y) / (n._zone.ry + extraPad);
+        const normDist = Math.hypot(dx, dy);
+        if (normDist <= 1.05 && normDist < bestScore) {
+          bestScore = normDist;
+          bestKey = key;
+        }
+      });
+      return bestKey;
+    }
+
+    function onPointerDown(e) {
+      if (state.isSpeakingTTS || state.isSingingAI) return;
+      const isTouch = !!e.touches;
+      const pos = getPointerPos(e);
+      const zoneKey = detectZoneAtPos(pos, isTouch ? 18 : 8);
+
+      if (isTouch && !zoneKey) {
+        state.pointerDown = false;
+        state.draggingNode = null;
+        hoverZone = null;
+        return;
+      }
+
+      if (!zoneKey) return;
+
+      if (e.cancelable) e.preventDefault();
+      if (state.isBabbling) setAutoBabble(false);
+      if (songTrainer.isTraining) setSongTraining(false);
+      if (!state.isAudioRunning) initAudio();
+
+      state.pointerDown = true;
+      state.draggingNode = zoneKey;
+      hoverZone = zoneKey;
+      updateFromPointer(pos);
+    }
+
+    function onPointerMove(e) {
+      const pos = getPointerPos(e);
+      if (!state.pointerDown) {
+        hoverZone = detectZoneAtPos(pos, 6);
+        tractCanvas.style.cursor = hoverZone ? 'grab' : 'default';
+        return;
+      }
+      if (!state.draggingNode) return;
+      if (e.cancelable) e.preventDefault();
+      tractCanvas.style.cursor = 'grabbing';
+      updateFromPointer(pos);
+    }
+
+    function updateFromPointer(pos) {
+      if (state.draggingNode === 'tongue' && nodes.tongue._bounds) {
+        const b = nodes.tongue._bounds;
+        state.targetTongueX = Math.max(0, Math.min(1, (pos.x - b.minX) / (b.maxX - b.minX)));
+        state.targetTongueY = Math.max(0, Math.min(1, 1 - (pos.y - b.minY) / (b.maxY - b.minY)));
+      } else if (state.draggingNode === 'lips' && nodes.lips._bounds) {
+        const b = nodes.lips._bounds;
+        state.targetLipOpen = Math.max(0, Math.min(1, (pos.y - b.baseY) / (38 * b.scale)));
+        state.targetLipRound = Math.max(0, Math.min(1, (pos.x - b.baseX) / (36 * b.scale)));
+      } else if (state.draggingNode === 'larynx' && nodes.larynx._bounds) {
+        const b = nodes.larynx._bounds;
+        state.targetLarynxY = Math.max(0, Math.min(1, 1 - (pos.y - b.minY) / (b.maxY - b.minY)));
+      }
+    }
+
+    function onPointerUp() {
+      state.pointerDown = false;
+      state.draggingNode = null;
+      tractCanvas.style.cursor = hoverZone ? 'grab' : 'default';
+    }
+
+    tractCanvas.addEventListener('mouseleave', () => {
+      if (!state.pointerDown) hoverZone = null;
+    });
+
+    tractCanvas.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('mousemove', onPointerMove);
+    window.addEventListener('mouseup', onPointerUp);
+
+    tractCanvas.addEventListener('touchstart', onPointerDown, { passive: false });
+    window.addEventListener('touchmove', onPointerMove, { passive: false });
+    window.addEventListener('touchend', onPointerUp);
+
+    // =========================================================================
+    // UI BINDINGS & TABS
+    // =========================================================================
+    function bindUIEvents() {
+      const btnPower = document.getElementById('btn-power');
+      if (btnPower) {
+        btnPower.addEventListener('click', () => {
+          if (!state.isAudioRunning) {
+            initAudio();
+          } else if (audioCtx) {
+            if (audioCtx.state === 'running') {
+              audioCtx.suspend();
+              state.isAudioRunning = false;
+            } else {
+              audioCtx.resume();
+              state.isAudioRunning = true;
+            }
+            updatePowerButtonUI();
+          }
+        });
+      }
+
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const p = PRESETS[btn.dataset.preset];
+          if (!p) return;
+          state.preset = btn.dataset.preset;
+          state.basePitch = p.pitch;
+          state.vibratoDepth = p.vibrato / 100;
+          state.nasality = p.nasal / 100;
+          state.breathiness = p.breath / 100;
+          state.formantShift = p.formantShift;
+          state.reverbMix = p.reverb;
+          state.alienMod = p.alien;
+          state.themeColor = p.theme;
+          state.accentColor = p.accent;
+          state.jawScale = p.jaw;
+          state.snoutScale = p.snout;
+
+          document.getElementById('preset-badge').textContent = p.name;
+          document.getElementById('slider-pitch').value = p.pitch;
+          document.getElementById('val-pitch').textContent = p.pitch + ' Hz';
+          document.getElementById('slider-vibrato').value = p.vibrato;
+          document.getElementById('val-vibrato').textContent = p.vibrato + '%';
+          document.getElementById('slider-nasal').value = p.nasal;
+          document.getElementById('val-nasal').textContent = p.nasal + '%';
+          document.getElementById('slider-breath').value = p.breath;
+          document.getElementById('val-breath').textContent = p.breath + '%';
+
+          document.querySelectorAll('.preset-btn').forEach(b => {
+            b.className = 'preset-btn flex-1 sm:flex-initial px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold transition cursor-pointer text-slate-400 hover:text-white whitespace-nowrap';
+          });
+          btn.className = 'preset-btn flex-1 sm:flex-initial px-2 py-1 rounded-lg text-[11px] sm:text-xs font-bold transition cursor-pointer bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 whitespace-nowrap';
+        });
+      });
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tab = btn.dataset.tab;
+          document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('active', 'text-cyan-300');
+            b.classList.add('text-slate-400');
+          });
+          btn.classList.add('active');
+          btn.classList.remove('text-slate-400');
+
+          document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+          const panel = document.getElementById('panel-' + tab);
+          if (panel) panel.classList.remove('hidden');
+        });
+      });
+
+      document.querySelectorAll('.vowel-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (state.isBabbling) setAutoBabble(false);
+          if (songTrainer.isTraining) setSongTraining(false);
+          const v = VOWELS[btn.dataset.vowel];
+          if (!v) return;
+          state.targetTongueX = v.tongueX;
+          state.targetTongueY = v.tongueY;
+          state.targetLipOpen = v.lipOpen;
+          state.targetLipRound = v.lipRound;
+          if (!state.isAudioRunning) initAudio();
+          if (audioCtx) {
+            voiceGateGain.gain.setTargetAtTime(0.58, audioCtx.currentTime, 0.02);
+            setTimeout(() => {
+              if (state.holdToSpeak && !state.pointerDown && !state.isSpeakingTTS && !state.isSingingAI) {
+                voiceGateGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.04);
+              }
+            }, 340);
+          }
+        });
+      });
+
+      document.querySelectorAll('.burst-btn, .beat-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const type = btn.dataset.burst || btn.dataset.beat;
+          triggerConsonantBurst(type, 0.75);
+        });
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+        const keyMap = { '1': 'p', '2': 'b', '3': 't', '4': 'k', '5': 'sh', '6': 's' };
+        if (keyMap[e.key]) triggerConsonantBurst(keyMap[e.key], 0.75);
+      });
+
+      document.getElementById('btn-tts-speak').addEventListener('click', () => {
+        speakText(document.getElementById('tts-input').value);
+      });
+      document.getElementById('tts-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') speakText(e.target.value);
+      });
+      document.querySelectorAll('.tts-preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const phrase = btn.dataset.phrase;
+          document.getElementById('tts-input').value = phrase;
+          speakText(phrase);
+        });
+      });
+
+      document.getElementById('slider-crispness').addEventListener('input', (e) => {
+        state.ttsCrispness = e.target.value / 100;
+        document.getElementById('val-crispness').textContent = e.target.value + '%';
+      });
+      document.getElementById('slider-effort').addEventListener('input', (e) => {
+        state.ttsEffort = e.target.value / 100;
+        document.getElementById('val-effort').textContent = e.target.value + '%';
+      });
+      document.getElementById('slider-speed').addEventListener('input', (e) => {
+        state.ttsSpeed = parseFloat(e.target.value);
+        document.getElementById('val-speed').textContent = state.ttsSpeed.toFixed(1) + 'x';
+      });
+
+      document.getElementById('btn-babble').addEventListener('click', () => {
+        setAutoBabble(!aiTrainer.isTraining);
+      });
+      document.getElementById('btn-ai-test').addEventListener('click', () => {
+        playLearnedGenome(aiTrainer.currentWord);
+      });
+      document.getElementById('btn-ai-set-word').addEventListener('click', () => {
+        const wasTraining = aiTrainer.isTraining;
+        if (wasTraining) setAutoBabble(false);
+        const added = addCustomWordToCorpus(document.getElementById('ai-word-input').value);
+        selectWordForTraining(added || 'МАМА');
+        saveAiMemory();
+        if (wasTraining) setAutoBabble(true);
+      });
+      document.getElementById('btn-ai-reset-word').addEventListener('click', () => {
+        const wasTraining = aiTrainer.isTraining;
+        if (wasTraining) setAutoBabble(false);
+        aiTrainer.memory = {};
+        aiTrainer.phonemeStats = {};
+        dynamicCorpus = [...BASE_CORPUS];
+        synthesizedWordsSet.clear();
+        initPhonemeStats();
+        saveAiMemory();
+        selectWordForTraining('МАМА');
+        showToast('Память слов и статистика звуков сброшены');
+      });
+
+      document.getElementById('btn-song-train').addEventListener('click', () => {
+        setSongTraining(!songTrainer.isTraining);
+      });
+      document.getElementById('btn-song-sing').addEventListener('click', () => {
+        singLearnedSong(songTrainer.activeSongId);
+      });
+      document.getElementById('btn-song-reset').addEventListener('click', () => {
+        if (songTrainer.isTraining) setSongTraining(false);
+        songTrainer.memory = {};
+        try { localStorage.removeItem(AI_SONGS_STORAGE_KEY); } catch (e) {}
+        selectSongForTraining(songTrainer.activeSongId);
+        saveSongMemory();
+        showToast('Память песен сброшена (слова сохранены)');
+      });
+
+      document.getElementById('scale-select').addEventListener('change', (e) => {
+        state.scaleMode = e.target.value;
+      });
+      document.getElementById('btn-share-loop').addEventListener('click', encodeLoopToHash);
+
+      document.getElementById('btn-exam-start').addEventListener('click', () => {
+        if (!state.isAudioRunning) initAudio();
+        if (state.isBabbling) setAutoBabble(false);
+        if (songTrainer.isTraining) setSongTraining(false);
+        examTimeLeft = 8.0;
+        examBestScore = 0;
+        examHitStages.clear();
+        examRunning = true;
+        document.getElementById('exam-score-val').textContent = '0%';
+        document.getElementById('exam-score-bar').style.width = '0%';
+        document.getElementById('exam-verdict').textContent = 'Идёт запись! Двигай язык и губы!';
+        document.getElementById('btn-exam-start').textContent = '⏱ Идёт попытка...';
+      });
+
+      document.getElementById('btn-exam-next').addEventListener('click', () => {
+        examIdx = (examIdx + 1) % EXAM_WORDS.length;
+        const w = EXAM_WORDS[examIdx];
+        document.getElementById('exam-target-word').textContent = w.word;
+        document.getElementById('exam-hint').textContent = 'Подсказка: ' + w.hint;
+        examRunning = false;
+        examTimeLeft = 8.0;
+        document.getElementById('exam-timer').textContent = '8.0 сек';
+        document.getElementById('exam-score-val').textContent = '0%';
+        document.getElementById('exam-score-bar').style.width = '0%';
+        document.getElementById('btn-exam-start').textContent = '▶ Старт попытки';
+      });
+
+      document.getElementById('btn-share-exam').addEventListener('click', () => {
+        const w = EXAM_WORDS[examIdx].word;
+        copyTextFallback(
+          `Я научил кибер-голову в VOX-MESH говорить слово «${w}» с точностью ${examBestScore}%! Попробуй перебить!`,
+          'Результат экзамена скопирован в буфер!'
+        );
+      });
+
+      document.getElementById('chk-hold').addEventListener('change', (e) => {
+        state.holdToSpeak = e.target.checked;
+      });
+      document.getElementById('slider-pitch').addEventListener('input', (e) => {
+        state.basePitch = parseFloat(e.target.value);
+        document.getElementById('val-pitch').textContent = e.target.value + ' Hz';
+      });
+      document.getElementById('slider-vibrato').addEventListener('input', (e) => {
+        state.vibratoDepth = e.target.value / 100;
+        document.getElementById('val-vibrato').textContent = e.target.value + '%';
+      });
+      document.getElementById('slider-nasal').addEventListener('input', (e) => {
+        state.nasality = e.target.value / 100;
+        document.getElementById('val-nasal').textContent = e.target.value + '%';
+      });
+      document.getElementById('slider-breath').addEventListener('input', (e) => {
+        state.breathiness = e.target.value / 100;
+        document.getElementById('val-breath').textContent = e.target.value + '%';
+      });
+    }
+
+    // =========================================================================
+    // MAIN ANIMATION LOOP
+    // =========================================================================
+    let isBootstrapped = false;
+
+    function animate(now) {
+      const dt = Math.min(0.05, (now - state.lastTime) / 1000);
+      state.lastTime = now;
+
+      const lerp = (state.isSpeakingTTS || state.isSingingAI) ? 0.38 : 0.22;
+      state.tongueX += (state.targetTongueX - state.tongueX) * lerp;
+      state.tongueY += (state.targetTongueY - state.tongueY) * lerp;
+      state.lipOpen += (state.targetLipOpen - state.lipOpen) * lerp;
+      state.lipRound += (state.targetLipRound - state.lipRound) * lerp;
+      state.larynxY += (state.targetLarynxY - state.larynxY) * lerp;
+
+      updateLooper(now);
+      updateExam(dt);
+      updateAcoustics();
+
+      const rect = tractCanvas.getBoundingClientRect();
+      drawWireframeHead(rect.width, rect.height, now);
+      drawOscilloscope();
+
+      requestAnimationFrame(animate);
+    }
+
+    function bootstrapApp() {
+      if (isBootstrapped) return;
+      isBootstrapped = true;
+      try {
+        bindUIEvents();
+        initAiBrainModal();
+        loadAiMemory();
+        loadSongMemory();
+        updateAiGlobalDashboard();
+        selectWordForTraining('МАМА');
+        selectSongForTraining(SONG_CORPUS[0].id);
+        renderLooperTracksUI();
+        parseSharedHash();
+        resizeCanvases();
+        requestAnimationFrame(animate);
+      } catch (err) {
+        console.error('VOX-MESH Init Error:', err);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bootstrapApp);
+    } else {
+      bootstrapApp();
+    }
+    window.onload = bootstrapApp;
+  </script>
+</body>
+</html>
+```
+
+Сделал оба улучшения:
+
+1. **Скачать сайт в один клик:** открой кнопку **`🧠 ИИ`** в шапке — самым первым блоком теперь висит кнопка **«⬇️ Скачать index.html»**, которая сразу сохраняет готовый файл сайта на устройство для загрузки на GitHub Pages.
+2. **Мягкие шипящие (`Ч, Щ, Ш, Ж, С, З`):** убрал резкий белый шум («помехи»), заменил его на сглаженный розовый поток через узкополосные фильтры (`Q = 5.8–6.5`) и снизил громкость шипящей шины до естественного баланса с голосом — теперь слова с `Ч` и `Щ` (*«ЧАШКА»*, *«ЩУКА»*, *«БОРЩ»*) звучат чисто и не перебивают остальные буквы.
